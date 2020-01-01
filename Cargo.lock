@@ -163,6 +163,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 name = "listitem"
 version = "0.1.0"
 dependencies = [
+ "log 0.4.8 (registry+https://github.com/rust-lang/crates.io-index)",
  "qt_core 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "qt_gui 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "qt_ui_tools 0.4.1 (registry+https://github.com/rust-lang/crates.io-index)",

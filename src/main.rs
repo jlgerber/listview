@@ -1,4 +1,6 @@
-use qt_core::{QListOfQModelIndex, QString, QStringList, QStringListModel};
+use log;
+use qt_core::{q_io_device::OpenModeFlag, QFile, QFlags, QSize, QString, QTextStream, QVariant};
+use qt_core::{QListOfQModelIndex, QStringList, QStringListModel};
 use qt_gui::{QStandardItem, QStandardItemModel};
 use qt_widgets::q_abstract_item_view::DragDropMode;
 use qt_widgets::{
@@ -41,6 +43,7 @@ impl<'a> Form<'a> {
     fn new() -> Self {
         unsafe {
             let mut main = QWidget::new_0a();
+            load_stylesheet(main.as_mut_ptr());
             let mut layout = QVBoxLayout::new_0a();
             let mut layout_ptr = layout.as_mut_ptr();
             main.set_layout(layout.into_ptr());
@@ -74,6 +77,30 @@ impl<'a> Form<'a> {
             };
             qlv_ptr.indexes_moved().connect(&f.index_moved);
             f
+        }
+    }
+}
+
+pub fn load_stylesheet(mut parent_widget: MutPtr<QWidget>) {
+    unsafe {
+        // Does not work
+        //QResource::add_search_path(&QString::from_std_str("/Users/jgerber/bin/"));
+        //
+        // this is now called in main.rs
+        // let _result = QResource::register_resource_q_string(&QString::from_std_str(
+        //    "/Users/jgerber/bin/pbgui.rcc",
+        //));
+
+        let mut file = QFile::from_q_string(&QString::from_std_str(
+            "/Users/jgerber/src/rust/examples/qt/listitem/stylesheet.qss",
+        ));
+        if file.open_1a(QFlags::from(OpenModeFlag::ReadOnly)) {
+            let mut text_stream = QTextStream::new();
+            text_stream.set_device(file.as_mut_ptr());
+            let stylesheet = text_stream.read_all();
+            parent_widget.set_style_sheet(stylesheet.as_ref());
+        } else {
+            log::warn!("stylesheet not found");
         }
     }
 }

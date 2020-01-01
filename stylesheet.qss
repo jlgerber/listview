@@ -1,0 +1,16 @@
+QListView::item {
+    border: 2px solid rgb(160,220,250);
+    margin: 2px;
+    background-color: rgb(100,170,220);
+    border-radius: 2px;
+    selection-color: red;
+}
+QListView::item:selected:active {
+    background-color: red;
+}
+QListView {
+    background-color: rgb(80,80,80);
+    padding:5px;
+}
+}
+QListView::Item:selecte
