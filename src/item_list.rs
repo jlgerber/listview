@@ -107,6 +107,18 @@ impl<'a> ItemListModeToolbar<'a> {
         spacer.set_size_policy_1a(sp.as_ref());
         spacer
     }
+    #[allow(dead_code)]
+    unsafe fn create_action(
+        name: &str,
+        toolbar: &mut MutPtr<QToolBar>,
+    ) -> (MutPtr<QAction>, MutPtr<QToolButton>) {
+        let mode_action = toolbar.add_action_1a(&qs(name));
+        let mut button: MutPtr<QToolButton> =
+            toolbar.widget_for_action(mode_action).dynamic_cast_mut();
+        button.set_object_name(&qs("WithpackagesToolbarButton"));
+
+        (mode_action, button)
+    }
     //
     #[allow(dead_code)]
     unsafe fn create_mode_action(
@@ -114,7 +126,7 @@ impl<'a> ItemListModeToolbar<'a> {
         action_grp_ptr: MutPtr<QActionGroup>,
         toolbar: &mut MutPtr<QToolBar>,
         checked: bool,
-    ) -> CppBox<QAction> {
+    ) -> (CppBox<QAction>, MutPtr<QToolButton>) {
         let mut mode_action = QAction::from_q_string_q_object(&qs(name), action_grp_ptr);
         mode_action.set_checkable(true);
         mode_action.set_checked(checked);
@@ -124,7 +136,7 @@ impl<'a> ItemListModeToolbar<'a> {
             .dynamic_cast_mut();
         button.set_object_name(&qs("WithpackagesToolbarButton"));
 
-        mode_action
+        (mode_action, button)
     }
 
     pub fn new(parent: &mut MutPtr<QWidget>) -> Self {
@@ -134,44 +146,62 @@ impl<'a> ItemListModeToolbar<'a> {
             let action_group_ptr = action_group.as_mut_ptr();
             // add spacer widget
             let spacer = Self::create_spacer();
-            // REORDER
-            let mut reorder_mode_action =
-                QAction::from_q_string_q_object(&qs("Reorder"), action_group_ptr);
-            reorder_mode_action.set_checkable(true);
-            reorder_mode_action.set_checked(true);
-            toolbar.add_action(reorder_mode_action.as_mut_ptr());
-            let mut reorder_button: MutPtr<QToolButton> = toolbar
-                .widget_for_action(reorder_mode_action.as_mut_ptr())
-                .dynamic_cast_mut();
-            //let  reorder_button_ref = reorder_button.as_mut_ref().unwrap();
-            reorder_button.set_object_name(&qs("WithpackagesToolbarButton"));
 
-            // REMOVE
-            let mut rm_mode_action =
-                QAction::from_q_string_q_object(&qs("Remove"), action_group_ptr);
-            rm_mode_action.set_checkable(true);
-            toolbar.add_action(rm_mode_action.as_mut_ptr());
-            let mut rm_button: MutPtr<QToolButton> = toolbar
-                .widget_for_action(rm_mode_action.as_mut_ptr())
-                .dynamic_cast_mut();
-            let rm_button_ref = rm_button.as_mut_ref().unwrap();
-            rm_button.set_object_name(&qs("WithpackagesToolbarButton"));
+            // REORDER
+            // let mut reorder_mode_action =
+            //     QAction::from_q_string_q_object(&qs("Reorder"), action_group_ptr);
+            // reorder_mode_action.set_checkable(true);
+            // reorder_mode_action.set_checked(true);
+            // toolbar.add_action(reorder_mode_action.as_mut_ptr());
+            // let mut reorder_button: MutPtr<QToolButton> = toolbar
+            //     .widget_for_action(reorder_mode_action.as_mut_ptr())
+            //     .dynamic_cast_mut();
+            // reorder_button.set_object_name(&qs("WithpackagesToolbarButton"));
             //
-            let mut add_mode_action = QAction::from_q_string_q_object(&qs("Add"), action_group_ptr);
-            toolbar.add_action(add_mode_action.as_mut_ptr());
-            add_mode_action.set_checkable(true);
-            let mut add_button: MutPtr<QToolButton> = toolbar
-                .widget_for_action(add_mode_action.as_mut_ptr())
-                .dynamic_cast_mut();
-            //let  add_button_ref = add_button.as_mut_ref().unwrap();
-            add_button.set_object_name(&qs("WithpackagesToolbarButton"));
+            let (reorder_mode_action, _reorder_btn) = Self::create_mode_action(
+                "Reorder",
+                action_group_ptr,
+                &mut toolbar.as_mut_ptr(),
+                true,
+            );
+            // REMOVE
+            // let mut rm_mode_action =
+            //     QAction::from_q_string_q_object(&qs("Remove"), action_group_ptr);
+            // rm_mode_action.set_checkable(true);
+            // toolbar.add_action(rm_mode_action.as_mut_ptr());
+            // let mut rm_button: MutPtr<QToolButton> = toolbar
+            //     .widget_for_action(rm_mode_action.as_mut_ptr())
+            //     .dynamic_cast_mut();
+            // let rm_button_ref = rm_button.as_mut_ref().unwrap();
+            // rm_button.set_object_name(&qs("WithpackagesToolbarButton"));
+
+            let (rm_mode_action, rm_button_ref) = Self::create_mode_action(
+                "Remove",
+                action_group_ptr,
+                &mut toolbar.as_mut_ptr(),
+                false,
+            );
+            //
+            //
+            // let mut add_mode_action = QAction::from_q_string_q_object(&qs("Add"), action_group_ptr);
+            // toolbar.add_action(add_mode_action.as_mut_ptr());
+            // add_mode_action.set_checkable(true);
+            // let mut add_button: MutPtr<QToolButton> = toolbar
+            //     .widget_for_action(add_mode_action.as_mut_ptr())
+            //     .dynamic_cast_mut();
+            // add_button.set_object_name(&qs("WithpackagesToolbarButton"));
+            //
+            let (add_mode_action, _add_btn) =
+                Self::create_mode_action("Add", action_group_ptr, &mut toolbar.as_mut_ptr(), false);
             //
             toolbar.add_widget(spacer.into_ptr());
-            let save_action = toolbar.add_action_1a(&qs("Save"));
-            // configure buttons
-            let mut save_button: MutPtr<QToolButton> =
-                toolbar.widget_for_action(save_action).dynamic_cast_mut();
-            save_button.set_object_name(&qs("WithpackagesToolbarButton"));
+            //
+            // let save_action = toolbar.add_action_1a(&qs("Save"));
+            // let mut save_button: MutPtr<QToolButton> =
+            //     toolbar.widget_for_action(save_action).dynamic_cast_mut();
+            // save_button.set_object_name(&qs("WithpackagesToolbarButton"));
+            //
+            let (save_action, _save_btn) = Self::create_action("Save", &mut toolbar.as_mut_ptr());
             //
             let toolbar_ptr = toolbar.as_mut_ptr();
             parent.layout().add_widget(toolbar.into_ptr());
