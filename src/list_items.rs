@@ -9,7 +9,9 @@ impl ListItems {
     pub fn new() -> Self {
         Self { items: Vec::new() }
     }
-
+    pub fn clear(&mut self) {
+        self.items.clear();
+    }
     pub fn add_item_to(&mut self, item: &str, model: &mut MutPtr<QStandardItemModel>) {
         unsafe {
             let mut si = QStandardItem::new();
