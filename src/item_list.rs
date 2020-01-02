@@ -133,7 +133,7 @@ impl<'a> ItemListModeToolbar<'a> {
             let mut action_group = QActionGroup::new(toolbar.as_mut_ptr());
             let action_group_ptr = action_group.as_mut_ptr();
             // add spacer widget
-            let mut spacer = Self::create_spacer();
+            let spacer = Self::create_spacer();
             //
             let mut reorder_mode_action =
                 QAction::from_q_string_q_object(&qs("Reorder"), action_group_ptr);
