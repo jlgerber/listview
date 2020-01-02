@@ -4,7 +4,7 @@ use qt_core::Slot;
 use qt_gui::{q_key_sequence::StandardKey, QKeySequence, QStandardItemModel};
 use qt_widgets::q_abstract_item_view::DragDropMode;
 use qt_widgets::{
-    cpp_core::{CppBox, MutPtr, MutRef},
+    cpp_core::{CppBox, MutPtr},
     q_abstract_item_view::SelectionMode,
     q_size_policy::Policy,
     QAction, QActionGroup, QHBoxLayout, QLabel, QLayout, QListView, QShortcut, QSizePolicy,
@@ -13,6 +13,7 @@ use qt_widgets::{
 use std::cell::RefCell;
 use std::rc::Rc;
 
+#[allow(unused_macros)]
 macro_rules! enclose {
     ( ($(  $x:ident ),*) $y:expr ) => {
         {
@@ -22,7 +23,19 @@ macro_rules! enclose {
     };
 }
 
-/// New up a widget,
+#[allow(unused_macros)]
+macro_rules! enclose_all {
+    ( ($(  $x:ident ),*) ($( mut $mx:ident ),*) $y:expr ) => {
+        {
+            $(let $x = $x.clone();)*
+            $(let mut $mx = $mx.clone();)*
+            $y
+        }
+    };
+}
+//
+// TRAITS
+//
 pub unsafe trait NewWidget<P, R> {
     fn create(parent: &MutPtr<P>) -> MutPtr<R>;
 }
@@ -83,6 +96,9 @@ fn add_layout_to_widget(widget: &mut MutPtr<QWidget>, layout: LayoutType) {
     }
 }
 
+//
+// ITEMLIST TOOLBAR
+//
 pub struct ItemListModeToolbar<'a> {
     pub toolbar: MutPtr<QToolBar>,
     pub action_group: MutPtr<QActionGroup>,
@@ -148,16 +164,6 @@ impl<'a> ItemListModeToolbar<'a> {
             let spacer = Self::create_spacer();
 
             // REORDER
-            // let mut reorder_mode_action =
-            //     QAction::from_q_string_q_object(&qs("Reorder"), action_group_ptr);
-            // reorder_mode_action.set_checkable(true);
-            // reorder_mode_action.set_checked(true);
-            // toolbar.add_action(reorder_mode_action.as_mut_ptr());
-            // let mut reorder_button: MutPtr<QToolButton> = toolbar
-            //     .widget_for_action(reorder_mode_action.as_mut_ptr())
-            //     .dynamic_cast_mut();
-            // reorder_button.set_object_name(&qs("WithpackagesToolbarButton"));
-            //
             let (reorder_mode_action, _reorder_btn) = Self::create_mode_action(
                 "Reorder",
                 action_group_ptr,
@@ -165,42 +171,18 @@ impl<'a> ItemListModeToolbar<'a> {
                 true,
             );
             // REMOVE
-            // let mut rm_mode_action =
-            //     QAction::from_q_string_q_object(&qs("Remove"), action_group_ptr);
-            // rm_mode_action.set_checkable(true);
-            // toolbar.add_action(rm_mode_action.as_mut_ptr());
-            // let mut rm_button: MutPtr<QToolButton> = toolbar
-            //     .widget_for_action(rm_mode_action.as_mut_ptr())
-            //     .dynamic_cast_mut();
-            // let rm_button_ref = rm_button.as_mut_ref().unwrap();
-            // rm_button.set_object_name(&qs("WithpackagesToolbarButton"));
-
             let (rm_mode_action, rm_button_ref) = Self::create_mode_action(
                 "Remove",
                 action_group_ptr,
                 &mut toolbar.as_mut_ptr(),
                 false,
             );
-            //
-            //
-            // let mut add_mode_action = QAction::from_q_string_q_object(&qs("Add"), action_group_ptr);
-            // toolbar.add_action(add_mode_action.as_mut_ptr());
-            // add_mode_action.set_checkable(true);
-            // let mut add_button: MutPtr<QToolButton> = toolbar
-            //     .widget_for_action(add_mode_action.as_mut_ptr())
-            //     .dynamic_cast_mut();
-            // add_button.set_object_name(&qs("WithpackagesToolbarButton"));
-            //
+            // ADD
             let (add_mode_action, _add_btn) =
                 Self::create_mode_action("Add", action_group_ptr, &mut toolbar.as_mut_ptr(), false);
-            //
+            // add in spacer
             toolbar.add_widget(spacer.into_ptr());
-            //
-            // let save_action = toolbar.add_action_1a(&qs("Save"));
-            // let mut save_button: MutPtr<QToolButton> =
-            //     toolbar.widget_for_action(save_action).dynamic_cast_mut();
-            // save_button.set_object_name(&qs("WithpackagesToolbarButton"));
-            //
+            // SAVE
             let (save_action, _save_btn) = Self::create_action("Save", &mut toolbar.as_mut_ptr());
             //
             let toolbar_ptr = toolbar.as_mut_ptr();
@@ -232,75 +214,21 @@ impl<'a> ItemListModeToolbar<'a> {
         unsafe { self.reorder_mode_action.is_checked() }
     }
 }
-/*
-pub struct ItemListToolbar<'a> {
-    pub edit_action: MutPtr<QAction>,
-    pub rm_action: MutPtr<QAction>,
-    pub save_action: MutPtr<QAction>,
-    pub edit: Slot<'a>,
-}
 
-impl<'a> ItemListToolbar<'a> {
-    pub fn new(parent: &mut MutPtr<QWidget>) -> Self {
-        unsafe {
-            let mut toolbar = QToolBar::from_q_string(&qs("WithPackage Toolbar"));
-            toolbar.set_floatable(false);
-            toolbar.set_movable(false);
-            // add spacer widget
-            let mut spacer = QWidget::new_0a();
-            let sp = QSizePolicy::new_2a(Policy::Expanding, Policy::Fixed);
-            spacer.set_size_policy_1a(sp.as_ref());
-            toolbar.add_widget(spacer.into_ptr());
-            // add actions
-            let edit_action = toolbar.add_action_1a(&qs("Edit"));
-            let rm_action = toolbar.add_action_1a(&qs("Remove"));
-            let save_action = toolbar.add_action_1a(&qs("Save"));
-            // configure buttons
-            let mut edit_button: MutPtr<QToolButton> =
-                toolbar.widget_for_action(edit_action).dynamic_cast_mut();
-            edit_button.set_object_name(&qs("WithpackagesToolbarButton"));
-            let mut edit_button_ref = edit_button.as_mut_ref().unwrap();
-            //
-            let mut rm_button: MutPtr<QToolButton> =
-                toolbar.widget_for_action(rm_action).dynamic_cast_mut();
-            let mut rm_button_ref = rm_button.as_mut_ref().unwrap();
-            rm_button_ref.set_enabled(false);
-            rm_button.set_object_name(&qs("WithpackagesToolbarButton"));
-            //
-            let mut save_button: MutPtr<QToolButton> =
-                toolbar.widget_for_action(save_action).dynamic_cast_mut();
-            let mut save_button_ref = save_button.as_mut_ref().unwrap();
-            save_button_ref.set_enabled(false);
-            save_button.set_object_name(&qs("WithpackagesToolbarButton"));
-            //
-            parent.layout().add_widget(toolbar.into_ptr());
-            let edit = Slot::new(move || {
-                println!("clicked");
-                let enabled = rm_button_ref.is_enabled();
-                rm_button_ref.set_enabled(!enabled);
-                save_button_ref.set_enabled(!enabled);
-            });
-            let tb = Self {
-                edit_action,
-                rm_action,
-                save_action,
-                edit,
-            };
-            edit_button.clicked().connect(&tb.edit);
-            tb
-        }
-    }
-}
-*/
+//
+// ITEMLIST
+//
 pub struct ItemList<'l> {
     pub _main: MutPtr<QWidget>,
     pub mode_toolbar: Rc<RefCell<ItemListModeToolbar<'l>>>,
-    //pub toolbar: ItemListToolbar<'l>,
     pub model: CppBox<QStandardItemModel>,
     pub view: MutPtr<QListView>,
     pub items: Rc<RefCell<ListItems>>,
     pub delete_shortcut: MutPtr<QShortcut>,
     pub rm: Slot<'l>,
+    pub reorder_mode: Slot<'l>,
+    pub rm_mode: Slot<'l>,
+    pub add_mode: Slot<'l>,
 }
 
 impl<'l> ItemList<'l> {
@@ -314,10 +242,8 @@ impl<'l> ItemList<'l> {
             let listview_ptr = Self::setup_listview(model.as_mut_ptr(), &mut main_ptr.layout());
             let key_seq = QKeySequence::from_standard_key(StandardKey::Delete);
             let delete_shortcut = QShortcut::new_2a(key_seq.as_ref(), listview_ptr);
-            //let toolbar = ItemListToolbar::new(&mut main_ptr);
 
-            let rm_slot = Slot::new(enclose! { (listview_ptr, mode_toolbar) move || {
-                println!("slot called");
+            let rm_slot = Slot::new(enclose_all! { ( mode_toolbar) (mut listview_ptr) move || {
                 if !mode_toolbar.borrow().is_remove_active() {
                     return;
                 }
@@ -329,17 +255,43 @@ impl<'l> ItemList<'l> {
                     listview_ptr.model().remove_row_1a(c);
                 }
             }});
+
             let f = Self {
                 _main: main_ptr,
                 model,
                 mode_toolbar,
-                //toolbar,
                 view: listview_ptr,
                 items: listitems,
                 delete_shortcut: delete_shortcut.into_ptr(),
                 rm: rm_slot,
+                reorder_mode: Slot::new(enclose_all! {() (mut listview_ptr) move || {
+                    listview_ptr.set_drag_drop_mode(DragDropMode::InternalMove);
+                    listview_ptr.set_drag_enabled(true);
+                }}),
+                rm_mode: Slot::new(enclose_all! { () (mut listview_ptr) move || {
+                    listview_ptr.set_drag_enabled(false);
+                    listview_ptr.set_drag_drop_mode(DragDropMode::NoDragDrop);
+                }}),
+                add_mode: Slot::new(enclose_all! { () (mut listview_ptr) move || {
+                    listview_ptr.set_drag_enabled(false);
+                    listview_ptr.set_drag_drop_mode(DragDropMode::NoDragDrop);
+                }}),
             };
-            //f.toolbar.rm_action.triggered().connect(&f.rm);
+            f.mode_toolbar
+                .borrow_mut()
+                .reorder_mode_action
+                .triggered()
+                .connect(&f.reorder_mode);
+            f.mode_toolbar
+                .borrow_mut()
+                .rm_mode_action
+                .triggered()
+                .connect(&f.rm_mode);
+            f.mode_toolbar
+                .borrow_mut()
+                .add_mode_action
+                .triggered()
+                .connect(&f.add_mode);
             f.delete_shortcut.activated().connect(&f.rm);
             f
         }
