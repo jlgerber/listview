@@ -7,8 +7,8 @@ use qt_widgets::{
     cpp_core::{CppBox, MutPtr},
     q_abstract_item_view::SelectionMode,
     q_size_policy::Policy,
-    QAction, QActionGroup, QHBoxLayout, QLabel, QLayout, QListView, QSizePolicy, QToolBar,
-    QToolButton, QVBoxLayout, QWidget,
+    QAction, QActionGroup, QComboBox, QHBoxLayout, QLabel, QLayout, QListView, QSizePolicy,
+    QToolBar, QToolButton, QVBoxLayout, QWidget,
 };
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -317,6 +317,7 @@ impl<'a> ItemListModeToolbar<'a> {
 pub struct ItemList<'l> {
     pub _main: MutPtr<QWidget>,
     pub mode_toolbar: Rc<RefCell<ItemListModeToolbar<'l>>>,
+    pub add_combobox: MutPtr<QComboBox>,
     pub model: CppBox<QStandardItemModel>,
     pub view: MutPtr<QListView>,
     pub items: Rc<RefCell<ListItems>>,
@@ -340,6 +341,7 @@ impl<'l> ItemList<'l> {
             let listitems = Rc::new(RefCell::new(ListItems::new()));
             let mut model = Self::setup_model();
             let mode_toolbar = Rc::new(RefCell::new(ItemListModeToolbar::new(&mut main_ptr)));
+            let cbox = Self::setup_combobox("ItemCombo", &mut main_ptr);
             let listview_ptr = Self::setup_listview(model.as_mut_ptr(), &mut main_ptr.layout());
             let rm_slot = Slot::new(enclose_all! { ( mode_toolbar) (mut listview_ptr) move || {
                 if !mode_toolbar.borrow().is_remove_active() {
@@ -358,6 +360,7 @@ impl<'l> ItemList<'l> {
                 _main: main_ptr,
                 model,
                 mode_toolbar,
+                add_combobox: cbox,
                 view: listview_ptr,
                 items: listitems,
                 rm: rm_slot,
@@ -462,6 +465,24 @@ impl<'l> ItemList<'l> {
             }
         }
     }
+    #[allow(dead_code)]
+    pub fn add_cb_items<'c, I>(&mut self, items: Vec<I>)
+    where
+        I: Into<&'c str>,
+    {
+        unsafe {
+            for item in items {
+                self.add_combobox.add_item_q_string(&qs(item.into()));
+            }
+        }
+    }
+    #[allow(dead_code)]
+    /// Remove all items from the combobox
+    pub fn remove_cb_items(&mut self) {
+        unsafe {
+            self.add_combobox.clear();
+        }
+    }
     // setup the main widget, performing configuration, adding a
     // layout, and registering ti with its parent, inserting it into
     // its parent's layout
@@ -511,6 +532,31 @@ impl<'l> ItemList<'l> {
             let qlv_ptr = qlv.as_mut_ptr();
             layout.add_widget(qlv.into_ptr());
             qlv_ptr
+        }
+    }
+    // Given a name and a parent, construct a QComboBox and return it
+    //
+    // #Arguments
+    // * `name` - Name of the combobox
+    // * `parent` - mut reference to the parent widget. Will be used to fetch the layout
+    //
+    // # Returns
+    // * A MutPtr wrapping the QComboBox
+    fn setup_combobox(name: &str, mut parent: &mut MutPtr<QWidget>) -> MutPtr<QComboBox> {
+        unsafe {
+            let mut cb_widget = QWidget::create(&mut parent);
+            cb_widget.add_layout(LayoutType::HBoxLayout);
+            cb_widget.set_object_name(&qs(format!("{}Widget", name)));
+
+            let mut cbox = QComboBox::new_0a();
+            cbox.set_editable(true);
+            let cbox_ptr = cbox.as_mut_ptr();
+
+            cb_widget
+                .layout()
+                .add_widget(QLabel::from_q_string(&qs("Add Item")).into_ptr());
+            cb_widget.layout().add_widget(cbox.into_ptr());
+            cbox_ptr
         }
     }
 }
