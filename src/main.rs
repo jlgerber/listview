@@ -1,3 +1,4 @@
+use qt_core::Key;
 use qt_core::Slot;
 use qt_widgets::{
     cpp_core::{CppBox, MutPtr},
@@ -56,6 +57,7 @@ struct Form<'a> {
     main: CppBox<QWidget>,
     item_list: Rc<RefCell<ItemList<'a>>>,
     delete_shortcut: MutPtr<QShortcut>,
+    cut_shortcut: MutPtr<QShortcut>,
     rm: Slot<'a>,
     add: Slot<'a>,
 }
@@ -73,8 +75,12 @@ impl<'a> Form<'a> {
                 "/Users/jgerber/src/rust/examples/qt/listitem/stylesheet.qss",
                 main.as_mut_ptr(),
             );
-            let key_seq = QKeySequence::from_standard_key(StandardKey::Cut);
+            let key_seq = QKeySequence::from_int(Key::KeyBackspace.to_int()); //16777219
             let delete_shortcut = QShortcut::new_2a(key_seq.as_ref(), main_ptr);
+
+            let cut_key_seq = QKeySequence::from_standard_key(StandardKey::Cut);
+            let cut_shortcut = QShortcut::new_2a(cut_key_seq.as_ref(), main_ptr);
+
             let f = Form {
                 main: main,
                 item_list: item_list.clone(),
@@ -82,6 +88,7 @@ impl<'a> Form<'a> {
                     item_list.borrow_mut().delete_sel_items();
                 }}),
                 delete_shortcut: delete_shortcut.into_ptr(),
+                cut_shortcut: cut_shortcut.into_ptr(),
                 add: Slot::new(enclose! { (item_list) move || {
                     item_list.borrow_mut().add_item("New Item");
                 }}),
@@ -89,6 +96,9 @@ impl<'a> Form<'a> {
             rm_button.clicked().connect(&f.rm);
             add_button.clicked().connect(&f.add);
             f.delete_shortcut
+                .activated()
+                .connect(&f.item_list.borrow_mut().rm);
+            f.cut_shortcut
                 .activated()
                 .connect(&f.item_list.borrow_mut().rm);
             f
