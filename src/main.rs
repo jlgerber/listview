@@ -130,6 +130,17 @@ fn main() {
         form.item_list
             .borrow_mut()
             .set_items(vec!["Foo", "bar", "bla"]);
+        form.item_list.borrow_mut().set_cb_items(vec![
+            "Foo",
+            "Bar",
+            "Bla",
+            "Fred",
+            "Barney",
+            "Ralph",
+            "Cedrick",
+            "animpublish",
+            "animrender",
+        ]);
         QApplication::exec()
     });
 }
