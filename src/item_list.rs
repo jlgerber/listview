@@ -1,12 +1,17 @@
 use super::list_items::ListItems;
 use super::utility::qs;
-use core::ops::Deref;
 use log;
+use qt_core::QSize;
+use qt_core::ToolButtonStyle;
 use qt_core::{Key, QString, Slot};
+use qt_gui::{
+    q_icon::{Mode, State},
+    QIcon,
+};
 use qt_gui::{QKeySequence, QStandardItemModel};
 use qt_widgets::q_abstract_item_view::DragDropMode;
 use qt_widgets::{
-    cpp_core::{CppBox, MutPtr},
+    cpp_core::{CppBox, MutPtr, MutRef, Ref},
     q_abstract_item_view::SelectionMode,
     q_size_policy::Policy,
     QAction, QActionGroup, QComboBox, QFrame, QHBoxLayout, QLabel, QLayout, QListView, QShortcut,
@@ -159,6 +164,7 @@ pub struct ItemListModeToolbar<'a> {
     pub reorder_mode_action: MutPtr<QAction>,
     pub rm_mode_action: MutPtr<QAction>,
     pub add_mode_action: MutPtr<QAction>,
+    _mode_icon: CppBox<QIcon>,
     pub edit: Slot<'a>,
 }
 
@@ -178,6 +184,20 @@ impl<'a> ItemListModeToolbar<'a> {
             let action_group_ptr = action_group.as_mut_ptr();
             // add spacer widget
             let spacer = Self::create_spacer();
+            let mut mode_icon = QIcon::new();
+            let size = QSize::new_2a(24, 24);
+            mode_icon.add_file_4a(
+                &qs(":images/radio_btn.svg"),
+                &size,
+                Mode::Normal,
+                State::Off,
+            );
+            mode_icon.add_file_4a(
+                &qs(":images/radio_btn_sel.svg"),
+                &size,
+                Mode::Normal,
+                State::On,
+            );
 
             // REORDER
             let (reorder_mode_action, _reorder_btn) = Self::create_mode_action(
@@ -185,6 +205,7 @@ impl<'a> ItemListModeToolbar<'a> {
                 action_group_ptr,
                 &mut toolbar.as_mut_ptr(),
                 true,
+                Some(mode_icon.as_ref()),
             );
             // REMOVE
             let (rm_mode_action, rm_button_ref) = Self::create_mode_action(
@@ -192,10 +213,16 @@ impl<'a> ItemListModeToolbar<'a> {
                 action_group_ptr,
                 &mut toolbar.as_mut_ptr(),
                 false,
+                Some(mode_icon.as_ref()),
             );
             // ADD
-            let (add_mode_action, _add_btn) =
-                Self::create_mode_action("Add", action_group_ptr, &mut toolbar.as_mut_ptr(), false);
+            let (add_mode_action, _add_btn) = Self::create_mode_action(
+                "Add",
+                action_group_ptr,
+                &mut toolbar.as_mut_ptr(),
+                false,
+                Some(mode_icon.as_ref()),
+            );
             // add in spacer
             toolbar.add_widget(spacer.into_ptr());
             // SAVE
@@ -211,6 +238,7 @@ impl<'a> ItemListModeToolbar<'a> {
                 reorder_mode_action: reorder_mode_action.into_ptr(),
                 rm_mode_action: rm_mode_action.into_ptr(),
                 add_mode_action: add_mode_action.into_ptr(),
+                _mode_icon: mode_icon,
                 edit,
             };
             tb
@@ -261,7 +289,7 @@ impl<'a> ItemListModeToolbar<'a> {
         let mut toolbar = QToolBar::from_q_string(&qs(name));
         toolbar.set_floatable(false);
         toolbar.set_movable(false);
-        toolbar.add_widget(QLabel::from_q_string(&qs("Mode:")).into_ptr());
+        //toolbar.add_widget(QLabel::from_q_string(&qs("Mode:")).into_ptr());
         toolbar
     }
     // Create a widget that serves as a spacer for the toolbar.
@@ -295,10 +323,11 @@ impl<'a> ItemListModeToolbar<'a> {
         let mode_action = toolbar.add_action_1a(&qs(name));
         let mut button: MutPtr<QToolButton> =
             toolbar.widget_for_action(mode_action).dynamic_cast_mut();
-        button.set_object_name(&qs("WithpackagesToolbarButton"));
+        button.set_object_name(&qs("WithsToolbarButton"));
 
         (mode_action, button)
     }
+
     #[allow(dead_code)]
     // Create a grouped action given a name, the group, toolbar, and an
     // indication of whether the action starts out checked. There should
@@ -319,16 +348,22 @@ impl<'a> ItemListModeToolbar<'a> {
         action_grp_ptr: MutPtr<QActionGroup>,
         toolbar: &mut MutPtr<QToolBar>,
         checked: bool,
+        icon: Option<Ref<QIcon>>,
     ) -> (CppBox<QAction>, MutPtr<QToolButton>) {
-        let mut mode_action = QAction::from_q_string_q_object(&qs(name), action_grp_ptr);
+        let mut mode_action = if let Some(icon) = icon {
+            QAction::from_q_icon_q_string_q_object(icon, &qs(name), action_grp_ptr)
+        } else {
+            QAction::from_q_string_q_object(&qs(name), action_grp_ptr)
+        };
+        //let mut mode_action = QAction::from_q_string_q_object(&qs(name), action_grp_ptr);
         mode_action.set_checkable(true);
         mode_action.set_checked(checked);
         toolbar.add_action(mode_action.as_mut_ptr());
         let mut button: MutPtr<QToolButton> = toolbar
             .widget_for_action(mode_action.as_mut_ptr())
             .dynamic_cast_mut();
-        button.set_object_name(&qs("WithpackagesToolbarButton"));
-
+        button.set_object_name(&qs("WithsToolbarModeButton"));
+        button.set_tool_button_style(ToolButtonStyle::ToolButtonTextBesideIcon);
         (mode_action, button)
     }
 }
@@ -393,6 +428,8 @@ impl<'l> ItemList<'l> {
             }});
             let enter_sc = Slot::new(enclose_all! { () (mut listitems) move || {
                 let text = cbox_ptr.current_text();
+                // bail if text is ""
+                if QString::compare_2_q_string(&text, &qs("")) == 0 {return;}
                 // validate that text is in the list
                 let mut found = false;
                 for cnt in 0..cbox_ptr.count() {
