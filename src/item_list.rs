@@ -11,8 +11,9 @@ use qt_gui::{
 use qt_gui::{QKeySequence, QStandardItemModel};
 use qt_widgets::q_abstract_item_view::DragDropMode;
 use qt_widgets::{
-    cpp_core::{CppBox, MutPtr, MutRef, Ref},
+    cpp_core::{CppBox, MutPtr, Ref},
     q_abstract_item_view::SelectionMode,
+    q_action::ActionEvent,
     q_size_policy::Policy,
     QAction, QActionGroup, QComboBox, QFrame, QHBoxLayout, QLabel, QLayout, QListView, QShortcut,
     QSizePolicy, QToolBar, QToolButton, QVBoxLayout, QWidget,
@@ -51,10 +52,12 @@ macro_rules! enclose {
 /// ```
 /// Slot::new(enclose_all!{(layout) (mut toolbar, mut button)} move || {...do stuff});
 /// ```
+
 macro_rules! enclose_all {
     ( ($(  $x:ident ),*) ($( mut $mx:ident ),*) $y:expr ) => {
         {
             $(let $x = $x.clone();)*
+            #[allow(unused_mut)]
             $(let mut $mx = $mx.clone();)*
             $y
         }
@@ -63,6 +66,7 @@ macro_rules! enclose_all {
 //
 // TRAITS
 //
+
 pub unsafe trait NewWidget<P, R> {
     fn create(parent: &MutPtr<P>) -> MutPtr<R>;
 }
@@ -100,6 +104,7 @@ pub enum LayoutType {
     VBoxLayout,
     HBoxLayout,
 }
+
 /// Trait provides a function to add a layout to
 pub unsafe trait AddLayout<R> {
     type Layout;
@@ -159,7 +164,6 @@ unsafe impl AddLayout<QFrame> for MutPtr<QFrame> {
 pub struct ItemListModeToolbar<'a> {
     pub toolbar: MutPtr<QToolBar>,
     pub action_group: MutPtr<QActionGroup>,
-    //pub save_action: MutPtr<QAction>,
     pub reorder_mode_action: MutPtr<QAction>,
     pub rm_mode_action: MutPtr<QAction>,
     pub add_mode_action: MutPtr<QAction>,
@@ -206,6 +210,7 @@ impl<'a> ItemListModeToolbar<'a> {
                 true,
                 Some(mode_icon.as_ref()),
             );
+
             // REMOVE
             let (rm_mode_action, rm_button_ref) = Self::create_mode_action(
                 "Remove",
@@ -214,6 +219,7 @@ impl<'a> ItemListModeToolbar<'a> {
                 false,
                 Some(mode_icon.as_ref()),
             );
+
             // ADD
             let (add_mode_action, _add_btn) = Self::create_mode_action(
                 "Add",
@@ -222,14 +228,15 @@ impl<'a> ItemListModeToolbar<'a> {
                 false,
                 Some(mode_icon.as_ref()),
             );
+
             // add in spacer
             toolbar.add_widget(spacer.into_ptr());
-            // SAVE
-            //let (save_action, _save_btn) = Self::create_action("Save", &mut toolbar.as_mut_ptr());
-            //
+
             let toolbar_ptr = toolbar.as_mut_ptr();
             parent.layout().add_widget(toolbar.into_ptr());
+
             let edit = Slot::new(move || if rm_button_ref.is_enabled() {});
+
             let tb = Self {
                 toolbar: toolbar_ptr,
                 action_group: action_group.into_ptr(),
@@ -240,6 +247,7 @@ impl<'a> ItemListModeToolbar<'a> {
                 _mode_icon: mode_icon,
                 edit,
             };
+
             tb
         }
     }
@@ -255,6 +263,7 @@ impl<'a> ItemListModeToolbar<'a> {
     pub fn is_remove_active(&self) -> bool {
         unsafe { self.rm_mode_action.is_checked() }
     }
+
     #[allow(dead_code)]
     /// Determine whether the add mode is active
     ///
@@ -266,6 +275,7 @@ impl<'a> ItemListModeToolbar<'a> {
     pub fn is_add_active(&self) -> bool {
         unsafe { self.add_mode_action.is_checked() }
     }
+
     #[allow(dead_code)]
     /// Determine whether the reorder mode is active
     ///
@@ -277,6 +287,7 @@ impl<'a> ItemListModeToolbar<'a> {
     pub fn is_reorder_active(&self) -> bool {
         unsafe { self.reorder_mode_action.is_checked() }
     }
+
     // Create and configure the QToolBar internal instance, provided a name
     //
     // # Arguments
@@ -288,9 +299,10 @@ impl<'a> ItemListModeToolbar<'a> {
         let mut toolbar = QToolBar::from_q_string(&qs(name));
         toolbar.set_floatable(false);
         toolbar.set_movable(false);
-        //toolbar.add_widget(QLabel::from_q_string(&qs("Mode:")).into_ptr());
+        toolbar.set_object_name(&qs("WithsToolBar"));
         toolbar
     }
+
     // Create a widget that serves as a spacer for the toolbar.
     //
     // # Arguments
@@ -304,6 +316,7 @@ impl<'a> ItemListModeToolbar<'a> {
         spacer.set_size_policy_1a(sp.as_ref());
         spacer
     }
+
     #[allow(dead_code)]
     // Given a name, and the host toolbar, create and return an action.
     //
@@ -357,12 +370,16 @@ impl<'a> ItemListModeToolbar<'a> {
         //let mut mode_action = QAction::from_q_string_q_object(&qs(name), action_grp_ptr);
         mode_action.set_checkable(true);
         mode_action.set_checked(checked);
+
         toolbar.add_action(mode_action.as_mut_ptr());
+
         let mut button: MutPtr<QToolButton> = toolbar
             .widget_for_action(mode_action.as_mut_ptr())
             .dynamic_cast_mut();
+
         button.set_object_name(&qs("WithsToolbarModeButton"));
         button.set_tool_button_style(ToolButtonStyle::ToolButtonTextBesideIcon);
+
         (mode_action, button)
     }
 }
@@ -401,17 +418,23 @@ impl<'l> ItemList<'l> {
     pub fn new(parent: MutPtr<QWidget>) -> ItemList<'l> {
         unsafe {
             let mut main_ptr = Self::setup_main_widget(&parent);
+
             let listitems = Rc::new(RefCell::new(ListItems::new()));
+
             let mut model = Self::setup_model();
             let mut model_ptr = model.as_mut_ptr();
+
             let mode_toolbar = Rc::new(RefCell::new(ItemListModeToolbar::new(&mut main_ptr)));
+
             let cbox = Self::setup_combobox("ItemCombo", &mut main_ptr);
             let cbox_ptr = cbox.clone();
+
             let listview_ptr = Self::setup_listview(model.as_mut_ptr(), &mut main_ptr.layout());
+
             let key_seq = QKeySequence::from_int(Key::KeyReturn.to_int());
             let enter_shortcut = QShortcut::new_2a(key_seq.as_ref(), main_ptr);
 
-            let rm_slot = Slot::new(enclose_all! { ( mode_toolbar) (mut listview_ptr) move || {
+            let rm_slot = Slot::new(enclose_all! { (mode_toolbar) (mut listview_ptr) move || {
                 if !mode_toolbar.borrow().is_remove_active() {
                     return;
                 }
@@ -425,29 +448,38 @@ impl<'l> ItemList<'l> {
                 indexes.sort();
                 indexes.iter().rev().for_each(|c| {listview_ptr.model().remove_row_1a(*c); });
             }});
-            let enter_sc = Slot::new(enclose_all! { () (mut listitems) move || {
-                let text = cbox_ptr.current_text();
-                // bail if text is ""
-                if QString::compare_2_q_string(&text, &qs("")) == 0 {return;}
-                // validate that text is in the list
-                let mut found = false;
-                for cnt in 0..cbox_ptr.count() {
-                    let item = cbox_ptr.item_text(cnt);
-                    if QString::compare_2_q_string(&text,&item) == 0 {
-                        found = true;
-                        break;
+
+            let enter_sc = Slot::new(
+                enclose_all! { (mode_toolbar) (mut listitems, mut cbox_ptr, mut listview_ptr) move || {
+                    if !mode_toolbar.borrow().is_add_active() {return;}
+                    let text = cbox_ptr.current_text();
+                    // bail if text is ""
+                    if QString::compare_2_q_string(&text, &qs("")) == 0 {return;}
+                    // validate that text is in the list
+                    let mut found = false;
+                    for cnt in 0..cbox_ptr.count() {
+                        let item = cbox_ptr.item_text(cnt);
+                        if QString::compare_2_q_string(&text,&item) == 0 {
+                            found = true;
+                            break;
+                        }
                     }
-                }
-                if !found {
-                    log::info!("user's entry not valid");
-                    return;
-                }
-                if model_ptr.find_items_1a(&text).length() > 0 {
-                    log::info!("entry already exists");
-                    return;
-                }
-                listitems.borrow_mut().add_item_to(text.to_std_string().as_str(),&mut model_ptr);
-            }});
+                    if !found {
+                        log::info!("user's entry not valid");
+                        return;
+                    }
+                    if model_ptr.find_items_1a(&text).length() > 0 {
+                        log::info!("entry already exists");
+                        return;
+                    }
+
+                    listitems.borrow_mut().add_item_to(text.to_std_string().as_str(),&mut model_ptr);
+                    cbox_ptr.clear_edit_text();
+                    listview_ptr.scroll_to_bottom();
+
+                }},
+            );
+
             let f = Self {
                 _main: main_ptr,
                 model,
@@ -456,37 +488,52 @@ impl<'l> ItemList<'l> {
                 view: listview_ptr,
                 items: listitems,
                 enter_shortcut: enter_shortcut.into_ptr(),
+
                 rm: rm_slot,
-                reorder_mode: Slot::new(enclose_all! {() (mut listview_ptr) move || {
-                    listview_ptr.set_drag_drop_mode(DragDropMode::InternalMove);
-                    listview_ptr.set_drag_enabled(true);
-                }}),
-                rm_mode: Slot::new(enclose_all! { () (mut listview_ptr) move || {
+
+                reorder_mode: Slot::new(
+                    enclose_all! {() (mut listview_ptr, mut cbox_ptr) move || {
+                        listview_ptr.set_drag_drop_mode(DragDropMode::InternalMove);
+                        listview_ptr.set_drag_enabled(true);
+                        cbox_ptr.set_disabled(true);
+                    }},
+                ),
+
+                rm_mode: Slot::new(enclose_all! { () (mut listview_ptr, mut cbox_ptr) move || {
                     listview_ptr.set_drag_enabled(false);
                     listview_ptr.set_drag_drop_mode(DragDropMode::NoDragDrop);
+                    cbox_ptr.set_disabled(true);
                 }}),
-                add_mode: Slot::new(enclose_all! { () (mut listview_ptr) move || {
+
+                add_mode: Slot::new(enclose_all! { () (mut listview_ptr, mut cbox_ptr) move || {
                     listview_ptr.set_drag_enabled(false);
                     listview_ptr.set_drag_drop_mode(DragDropMode::NoDragDrop);
+                    cbox_ptr.set_enabled(true);
                 }}),
+
                 enter_sc,
             };
+
             f.mode_toolbar
                 .borrow_mut()
                 .reorder_mode_action
                 .triggered()
                 .connect(&f.reorder_mode);
+
             f.mode_toolbar
                 .borrow_mut()
                 .rm_mode_action
                 .triggered()
                 .connect(&f.rm_mode);
+
             f.mode_toolbar
                 .borrow_mut()
                 .add_mode_action
                 .triggered()
                 .connect(&f.add_mode);
+
             f.enter_shortcut.activated().connect(&f.enter_sc);
+
             f
         }
     }
@@ -542,6 +589,7 @@ impl<'l> ItemList<'l> {
                 .add_item_to(item.into(), &mut self.model.as_mut_ptr());
         }
     }
+
     #[allow(dead_code)]
     /// Delete selected items from the list.
     ///
@@ -561,8 +609,9 @@ impl<'l> ItemList<'l> {
             }
         }
     }
+
     #[allow(dead_code)]
-    /// set items in the combobox
+    /// Set items in the combobox
     pub fn set_cb_items<'c, I>(&mut self, items: Vec<I>)
     where
         I: Into<&'c str>,
@@ -575,11 +624,41 @@ impl<'l> ItemList<'l> {
             }
         }
     }
+
     #[allow(dead_code)]
     /// Remove all items from the combobox
     pub fn remove_cb_items(&mut self) {
         unsafe {
             self.add_combobox.clear();
+        }
+    }
+
+    pub fn set_reorder_mode(&mut self) {
+        unsafe {
+            self.mode_toolbar
+                .borrow_mut()
+                .reorder_mode_action
+                .activate(ActionEvent::Trigger);
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn set_add_mode(&mut self) {
+        unsafe {
+            self.mode_toolbar
+                .borrow_mut()
+                .add_mode_action
+                .activate(ActionEvent::Trigger);
+        }
+    }
+
+    #[allow(dead_code)]
+    pub fn set_rm_mode(&mut self) {
+        unsafe {
+            self.mode_toolbar
+                .borrow_mut()
+                .rm_mode_action
+                .activate(ActionEvent::Trigger);
         }
     }
     // setup the main widget, performing configuration, adding a
@@ -594,6 +673,7 @@ impl<'l> ItemList<'l> {
     fn setup_main_widget(parent: &MutPtr<QWidget>) -> MutPtr<QWidget> {
         QWidget::create(&parent).add_layout(LayoutType::VBoxLayout)
     }
+
     // construct a model, configurng it for the listview
     //
     // # Arguments
@@ -608,6 +688,7 @@ impl<'l> ItemList<'l> {
             model
         }
     }
+
     // set up the ListView, configuring drag and drop, registering
     // the model, and adding it into the supplied layout
     //
@@ -623,6 +704,7 @@ impl<'l> ItemList<'l> {
     ) -> MutPtr<QListView> {
         unsafe {
             let mut qlv = QListView::new_0a();
+            qlv.set_object_name(&qs("WithsListView"));
             qlv.set_model(model);
             qlv.set_drag_enabled(true);
             qlv.set_selection_mode(SelectionMode::ExtendedSelection);
@@ -630,9 +712,11 @@ impl<'l> ItemList<'l> {
             qlv.set_drag_drop_mode(DragDropMode::InternalMove);
             let qlv_ptr = qlv.as_mut_ptr();
             layout.add_widget(qlv.into_ptr());
+
             qlv_ptr
         }
     }
+
     // Given a name and a parent, construct a QComboBox and return it
     //
     // #Arguments
@@ -647,12 +731,14 @@ impl<'l> ItemList<'l> {
             cb_widget.add_layout(LayoutType::HBoxLayout);
             cb_widget.set_object_name(&qs(format!("{}Widget", name)));
 
-            let mut cbox = QComboBox::new_0a();
-            cbox.set_editable(true);
-            let cbox_ptr = cbox.as_mut_ptr();
             let mut cb_label = QLabel::from_q_string(&qs("Add Item"));
             cb_label.set_object_name(&qs("WithsCBLabel"));
             cb_widget.layout().add_widget(cb_label.into_ptr());
+
+            let mut cbox = QComboBox::new_0a();
+            cbox.set_editable(true);
+            cbox.set_object_name(&qs("WithsComboBox"));
+            let cbox_ptr = cbox.as_mut_ptr();
             cb_widget.layout().add_widget(cbox.into_ptr());
 
             let mut layout = cb_widget.layout().dynamic_cast_mut::<QHBoxLayout>();
@@ -661,6 +747,7 @@ impl<'l> ItemList<'l> {
                 return cbox_ptr;
             }
             layout.set_stretch(1, 1);
+
             cbox_ptr
         }
     }
