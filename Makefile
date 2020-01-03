@@ -1,16 +1,16 @@
 build:
-	cargo build --release
+	cargo build --example withlist --release
 
 install:
-	cp ./target/release/listitem ~/bin/.
+	cp ./target/release/examples/withlist ~/bin/.
 
 install-stylesheet:
-	cp ./resources/listitem.qss ~/bin/.
+	cp ./resources/withlist.qss ~/bin/.
 
 rcc:
-	rcc -binary ./resources/listitem.qrc -o ./resources/listitem.rcc
+	rcc -binary ./resources/withlist.qrc -o ./resources/withlist.rcc
 
 install-rcc:
-	cp ./resources/listitem.rcc ~/bin/. && rm ./resources/listitem.rcc
+	cp ./resources/withlist.rcc ~/bin/. && rm ./resources/withlist.rcc
 
 all: build install install-stylesheet rcc install-rcc

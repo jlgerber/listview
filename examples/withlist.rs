@@ -5,15 +5,10 @@ use listitem::{utility::qs, withlist::WithList};
 
 fn main() {
     QApplication::init(|_app| unsafe {
-        let _result = QResource::register_resource_q_string(&qs("/Users/jgerber/bin/listitem.rcc"));
+        let _result = QResource::register_resource_q_string(&qs("/Users/jgerber/bin/withlist.rcc"));
 
         let mut with_list = WithList::new();
-        with_list.set_stylesheet("/Users/jgerber/bin/listitem.qss");
-
-        // with_list
-        //     .item_list
-        //     .borrow_mut()
-        //     .set_items(vec!["Foo", "bar", "bla"]);
+        with_list.set_stylesheet("/Users/jgerber/bin/withlist.qss");
 
         with_list.add_items(vec![
             "amtools",
