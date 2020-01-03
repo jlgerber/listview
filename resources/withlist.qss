@@ -15,7 +15,7 @@ QListView#WithsListView::item {
 }
 
 
-QListView#WithsListView::item:selected:active {
+QListView#WithsListView::item:selected { /*:active */
     background-color: rgb(110,190,250);
 }
 

@@ -67,7 +67,7 @@ fn main() {
             "xerces",
         ]);
 
-        with_list.item_list.borrow_mut().set_reorder_mode();
+        with_list.item_list.borrow_mut().set_add_mode();
 
         with_list.show();
 

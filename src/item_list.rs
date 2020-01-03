@@ -1,6 +1,9 @@
 use super::list_items::ListItems;
 use super::utility::qs;
 use log;
+use qt_core::q_item_selection_model::SelectionFlag;
+use qt_core::MatchFlag;
+use qt_core::QFlags;
 use qt_core::QSize;
 use qt_core::ToolButtonStyle;
 use qt_core::{Key, QString, Slot};
@@ -8,10 +11,10 @@ use qt_gui::{
     q_icon::{Mode, State},
     QIcon,
 };
-use qt_gui::{QKeySequence, QStandardItemModel};
+use qt_gui::{QKeySequence, QStandardItem, QStandardItemModel};
 use qt_widgets::q_abstract_item_view::DragDropMode;
 use qt_widgets::{
-    cpp_core::{CppBox, MutPtr, Ref},
+    cpp_core::{CppBox, MutPtr, MutRef, Ref},
     q_abstract_item_view::SelectionMode,
     q_action::ActionEvent,
     q_size_policy::Policy,
@@ -161,17 +164,15 @@ unsafe impl AddLayout<QFrame> for MutPtr<QFrame> {
 /// A struct holding pointers to the QToolbar instance,
 /// along with the action group, all of the actions for the
 /// buttons on the toolbar, as well as any internal slots
-pub struct ItemListModeToolbar<'a> {
+pub struct ItemListModeToolbar {
     pub toolbar: MutPtr<QToolBar>,
     pub action_group: MutPtr<QActionGroup>,
-    pub reorder_mode_action: MutPtr<QAction>,
-    pub rm_mode_action: MutPtr<QAction>,
     pub add_mode_action: MutPtr<QAction>,
+    pub find_mode_action: MutPtr<QAction>,
     _mode_icon: CppBox<QIcon>,
-    pub edit: Slot<'a>,
 }
 
-impl<'a> ItemListModeToolbar<'a> {
+impl ItemListModeToolbar {
     /// New up an ItemListModeToolbar, and regiter it with it
     /// parent's layout, given it's parent widget.
     ///
@@ -202,27 +203,18 @@ impl<'a> ItemListModeToolbar<'a> {
                 State::On,
             );
 
-            // REORDER
-            let (reorder_mode_action, _reorder_btn) = Self::create_mode_action(
-                "Reorder",
-                action_group_ptr,
-                &mut toolbar.as_mut_ptr(),
-                true,
-                Some(mode_icon.as_ref()),
-            );
-
-            // REMOVE
-            let (rm_mode_action, rm_button_ref) = Self::create_mode_action(
-                "Remove",
+            // ADD
+            let (add_mode_action, _add_btn) = Self::create_mode_action(
+                "Add",
                 action_group_ptr,
                 &mut toolbar.as_mut_ptr(),
                 false,
                 Some(mode_icon.as_ref()),
             );
 
-            // ADD
-            let (add_mode_action, _add_btn) = Self::create_mode_action(
-                "Add",
+            // Find
+            let (find_mode_action, find_button_ref) = Self::create_mode_action(
+                "Find",
                 action_group_ptr,
                 &mut toolbar.as_mut_ptr(),
                 false,
@@ -235,17 +227,12 @@ impl<'a> ItemListModeToolbar<'a> {
             let toolbar_ptr = toolbar.as_mut_ptr();
             parent.layout().add_widget(toolbar.into_ptr());
 
-            let edit = Slot::new(move || if rm_button_ref.is_enabled() {});
-
             let tb = Self {
                 toolbar: toolbar_ptr,
                 action_group: action_group.into_ptr(),
-                //save_action: save_action,
-                reorder_mode_action: reorder_mode_action.into_ptr(),
-                rm_mode_action: rm_mode_action.into_ptr(),
+                find_mode_action: find_mode_action.into_ptr(),
                 add_mode_action: add_mode_action.into_ptr(),
                 _mode_icon: mode_icon,
-                edit,
             };
 
             tb
@@ -253,15 +240,15 @@ impl<'a> ItemListModeToolbar<'a> {
     }
 
     #[allow(dead_code)]
-    /// Determine if the remove mode is active
+    /// Determine if the find mode is active
     ///
     /// # Arguments
     /// * None
     ///
     /// # Returns
-    /// * bool indicating whether or not the remove mode is active
-    pub fn is_remove_active(&self) -> bool {
-        unsafe { self.rm_mode_action.is_checked() }
+    /// * bool indicating whether or not the find mode is active
+    pub fn is_find_active(&self) -> bool {
+        unsafe { self.find_mode_action.is_checked() }
     }
 
     #[allow(dead_code)]
@@ -274,18 +261,6 @@ impl<'a> ItemListModeToolbar<'a> {
     /// * bool indicating whether or not the add mode is active
     pub fn is_add_active(&self) -> bool {
         unsafe { self.add_mode_action.is_checked() }
-    }
-
-    #[allow(dead_code)]
-    /// Determine whether the reorder mode is active
-    ///
-    /// # Arguments
-    /// * None
-    ///
-    /// # Returns
-    /// * bool indicating whether the reorder is active
-    pub fn is_reorder_active(&self) -> bool {
-        unsafe { self.reorder_mode_action.is_checked() }
     }
 
     // Create and configure the QToolBar internal instance, provided a name
@@ -394,15 +369,14 @@ impl<'a> ItemListModeToolbar<'a> {
 /// the actual items backing data, and various slots
 pub struct ItemList<'l> {
     pub _main: MutPtr<QWidget>,
-    pub mode_toolbar: Rc<RefCell<ItemListModeToolbar<'l>>>,
+    pub mode_toolbar: Rc<RefCell<ItemListModeToolbar>>,
     pub add_combobox: MutPtr<QComboBox>,
     pub model: CppBox<QStandardItemModel>,
     pub view: MutPtr<QListView>,
     pub items: Rc<RefCell<ListItems>>,
     pub enter_shortcut: MutPtr<QShortcut>,
     pub rm: Slot<'l>,
-    pub reorder_mode: Slot<'l>,
-    pub rm_mode: Slot<'l>,
+    pub find_mode: Slot<'l>,
     pub add_mode: Slot<'l>,
     pub enter_sc: Slot<'l>,
 }
@@ -435,9 +409,6 @@ impl<'l> ItemList<'l> {
             let enter_shortcut = QShortcut::new_2a(key_seq.as_ref(), main_ptr);
 
             let rm_slot = Slot::new(enclose_all! { (mode_toolbar) (mut listview_ptr) move || {
-                if !mode_toolbar.borrow().is_remove_active() {
-                    return;
-                }
                 let selected = listview_ptr.selection_model().selected_indexes();
                 if selected.length() == 0 {
                     return;
@@ -450,9 +421,14 @@ impl<'l> ItemList<'l> {
             }});
 
             let enter_sc = Slot::new(
-                enclose_all! { (mode_toolbar) (mut listitems, mut cbox_ptr, mut listview_ptr) move || {
-                    if !mode_toolbar.borrow().is_add_active() {return;}
+                enclose_all! { (mode_toolbar) (mut listitems, mut cbox_ptr, mut listview_ptr, mut model_ptr) move || {
                     let text = cbox_ptr.current_text();
+                    if mode_toolbar.borrow().is_find_active() {
+                        if Self::_scroll_to_item(text.as_ref(), &mut listview_ptr, &mut model_ptr) {
+                            cbox_ptr.clear_edit_text();
+                        }
+                        return;
+                    }
                     // bail if text is ""
                     if QString::compare_2_q_string(&text, &qs("")) == 0 {return;}
                     // validate that text is in the list
@@ -469,7 +445,9 @@ impl<'l> ItemList<'l> {
                         return;
                     }
                     if model_ptr.find_items_1a(&text).length() > 0 {
-                        log::info!("entry already exists");
+                        if Self::_scroll_to_item(text.as_ref(), &mut listview_ptr, &mut model_ptr) {
+                            cbox_ptr.clear_edit_text();
+                        }
                         return;
                     }
 
@@ -491,23 +469,16 @@ impl<'l> ItemList<'l> {
 
                 rm: rm_slot,
 
-                reorder_mode: Slot::new(
-                    enclose_all! {() (mut listview_ptr, mut cbox_ptr) move || {
-                        listview_ptr.set_drag_drop_mode(DragDropMode::InternalMove);
-                        listview_ptr.set_drag_enabled(true);
-                        cbox_ptr.set_disabled(true);
-                    }},
-                ),
-
-                rm_mode: Slot::new(enclose_all! { () (mut listview_ptr, mut cbox_ptr) move || {
-                    listview_ptr.set_drag_enabled(false);
-                    listview_ptr.set_drag_drop_mode(DragDropMode::NoDragDrop);
-                    cbox_ptr.set_disabled(true);
+                find_mode: Slot::new(enclose_all! { () ( mut cbox_ptr) move || {
+                    //listview_ptr.set_drag_enabled(true);
+                    //listview_ptr.set_drag_drop_mode(DragDropMode::NoDragDrop);
+                    //cbox_ptr.set_disabled(true);
+                    cbox_ptr.set_enabled(true);
                 }}),
 
-                add_mode: Slot::new(enclose_all! { () (mut listview_ptr, mut cbox_ptr) move || {
-                    listview_ptr.set_drag_enabled(false);
-                    listview_ptr.set_drag_drop_mode(DragDropMode::NoDragDrop);
+                add_mode: Slot::new(enclose_all! { () ( mut cbox_ptr) move || {
+                    //listview_ptr.set_drag_enabled(false);
+                    //listview_ptr.set_drag_drop_mode(DragDropMode::NoDragDrop);
                     cbox_ptr.set_enabled(true);
                 }}),
 
@@ -516,15 +487,9 @@ impl<'l> ItemList<'l> {
 
             f.mode_toolbar
                 .borrow_mut()
-                .reorder_mode_action
+                .find_mode_action
                 .triggered()
-                .connect(&f.reorder_mode);
-
-            f.mode_toolbar
-                .borrow_mut()
-                .rm_mode_action
-                .triggered()
-                .connect(&f.rm_mode);
+                .connect(&f.find_mode);
 
             f.mode_toolbar
                 .borrow_mut()
@@ -590,6 +555,64 @@ impl<'l> ItemList<'l> {
         }
     }
 
+    fn _find_item<'a>(
+        item: Ref<QString>,
+        model: &MutPtr<QStandardItemModel>,
+    ) -> Option<MutPtr<QStandardItem>> {
+        unsafe {
+            let mut location = model.find_items_2a(item, MatchFlag::MatchCaseSensitive.into());
+            if location.count() == 0 {
+                return None;
+            }
+            let first = location.take_first();
+            Some(first)
+        }
+    }
+
+    /// add an item to the pulldown
+    ///
+    /// # Arguments
+    /// * The item to be found, as a &MutPtr<QString>
+    pub fn find_item<'a>(&mut self, item: Ref<QString>) -> Option<MutPtr<QStandardItem>> {
+        unsafe {
+            let mut location = self
+                .model
+                .find_items_2a(item, MatchFlag::MatchCaseSensitive.into());
+            if location.count() == 0 {
+                return None;
+            }
+            let first = location.take_first();
+            // let idx = first.index();
+            //self.view.scroll_to_1a(&idx);
+            Some(first)
+        }
+    }
+
+    fn _scroll_to_item<'a>(
+        item: Ref<QString>,
+        view: &mut MutPtr<QListView>,
+        model: &mut MutPtr<QStandardItemModel>,
+    ) -> bool {
+        unsafe {
+            if let Some(item) = Self::_find_item(item, model) {
+                let idx = item.index();
+                view.set_current_index(&idx);
+                view.scroll_to_1a(&idx);
+                return true;
+            }
+            false
+        }
+    }
+
+    pub fn scroll_to_item<'a>(&mut self, item: Ref<QString>) {
+        if let Some(item) = self.find_item(item) {
+            unsafe {
+                let idx = item.index();
+                self.view.scroll_to_1a(&idx);
+            }
+        }
+    }
+
     #[allow(dead_code)]
     /// Delete selected items from the list.
     ///
@@ -633,15 +656,6 @@ impl<'l> ItemList<'l> {
         }
     }
 
-    pub fn set_reorder_mode(&mut self) {
-        unsafe {
-            self.mode_toolbar
-                .borrow_mut()
-                .reorder_mode_action
-                .activate(ActionEvent::Trigger);
-        }
-    }
-
     #[allow(dead_code)]
     pub fn set_add_mode(&mut self) {
         unsafe {
@@ -653,11 +667,11 @@ impl<'l> ItemList<'l> {
     }
 
     #[allow(dead_code)]
-    pub fn set_rm_mode(&mut self) {
+    pub fn set_find_mode(&mut self) {
         unsafe {
             self.mode_toolbar
                 .borrow_mut()
-                .rm_mode_action
+                .find_mode_action
                 .activate(ActionEvent::Trigger);
         }
     }
