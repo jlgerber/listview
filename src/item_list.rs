@@ -19,7 +19,6 @@ use qt_widgets::{
 };
 use std::cell::RefCell;
 use std::rc::Rc;
-
 #[allow(unused_macros)]
 /// Macro to clone items before moving them into a closure.
 /// Used to handle reference counted items without cluttering
@@ -160,7 +159,7 @@ unsafe impl AddLayout<QFrame> for MutPtr<QFrame> {
 pub struct ItemListModeToolbar<'a> {
     pub toolbar: MutPtr<QToolBar>,
     pub action_group: MutPtr<QActionGroup>,
-    pub save_action: MutPtr<QAction>,
+    //pub save_action: MutPtr<QAction>,
     pub reorder_mode_action: MutPtr<QAction>,
     pub rm_mode_action: MutPtr<QAction>,
     pub add_mode_action: MutPtr<QAction>,
@@ -226,7 +225,7 @@ impl<'a> ItemListModeToolbar<'a> {
             // add in spacer
             toolbar.add_widget(spacer.into_ptr());
             // SAVE
-            let (save_action, _save_btn) = Self::create_action("Save", &mut toolbar.as_mut_ptr());
+            //let (save_action, _save_btn) = Self::create_action("Save", &mut toolbar.as_mut_ptr());
             //
             let toolbar_ptr = toolbar.as_mut_ptr();
             parent.layout().add_widget(toolbar.into_ptr());
@@ -234,7 +233,7 @@ impl<'a> ItemListModeToolbar<'a> {
             let tb = Self {
                 toolbar: toolbar_ptr,
                 action_group: action_group.into_ptr(),
-                save_action: save_action,
+                //save_action: save_action,
                 reorder_mode_action: reorder_mode_action.into_ptr(),
                 rm_mode_action: rm_mode_action.into_ptr(),
                 add_mode_action: add_mode_action.into_ptr(),
@@ -543,6 +542,7 @@ impl<'l> ItemList<'l> {
                 .add_item_to(item.into(), &mut self.model.as_mut_ptr());
         }
     }
+    #[allow(dead_code)]
     /// Delete selected items from the list.
     ///
     /// # Arguments
@@ -650,11 +650,17 @@ impl<'l> ItemList<'l> {
             let mut cbox = QComboBox::new_0a();
             cbox.set_editable(true);
             let cbox_ptr = cbox.as_mut_ptr();
-
-            cb_widget
-                .layout()
-                .add_widget(QLabel::from_q_string(&qs("Add Item")).into_ptr());
+            let mut cb_label = QLabel::from_q_string(&qs("Add Item"));
+            cb_label.set_object_name(&qs("WithsCBLabel"));
+            cb_widget.layout().add_widget(cb_label.into_ptr());
             cb_widget.layout().add_widget(cbox.into_ptr());
+
+            let mut layout = cb_widget.layout().dynamic_cast_mut::<QHBoxLayout>();
+            if layout.is_null() {
+                log::error!("unable to cast layout to QHBoxLayout");
+                return cbox_ptr;
+            }
+            layout.set_stretch(1, 1);
             cbox_ptr
         }
     }
