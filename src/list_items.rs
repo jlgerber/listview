@@ -5,6 +5,7 @@ use qt_widgets::cpp_core::MutPtr;
 pub struct ListItems {
     items: Vec<MutPtr<QStandardItem>>,
 }
+
 impl ListItems {
     pub fn new() -> Self {
         Self { items: Vec::new() }
