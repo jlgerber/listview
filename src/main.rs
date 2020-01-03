@@ -1,4 +1,3 @@
-use qt_core::Slot;
 use qt_core::{Key, QResource};
 use qt_widgets::{
     cpp_core::{CppBox, MutPtr},
@@ -53,45 +52,34 @@ macro_rules! enclose_all {
     };
 }
 
-struct Form<'a> {
+struct WithList<'a> {
     main: CppBox<QWidget>,
     item_list: Rc<RefCell<ItemList<'a>>>,
     delete_shortcut: MutPtr<QShortcut>,
     cut_shortcut: MutPtr<QShortcut>,
-    rm: Slot<'a>,
-    add: Slot<'a>,
 }
 
-impl<'a> Form<'a> {
+impl<'a> WithList<'a> {
     fn new() -> Self {
         unsafe {
             let mut main = Self::setup_main();
             let main_ptr = main.as_mut_ptr();
-            load_stylesheet("/Users/jgerber/bin/listitem.qss", main.as_mut_ptr());
             let item_list = Rc::new(RefCell::new(ItemList::new(main_ptr)));
             //buttons
-            let rm_button = Self::setup_button("Remove", &mut main.layout());
-            let add_button = Self::setup_button("Add", &mut main.layout());
-            let key_seq = QKeySequence::from_int(Key::KeyBackspace.to_int()); //16777219
+            let _save_button = Self::setup_button("Save", &mut main.layout());
+            // shortcuts
+            let key_seq = QKeySequence::from_int(Key::KeyBackspace.to_int());
             let delete_shortcut = QShortcut::new_2a(key_seq.as_ref(), main_ptr);
 
             let cut_key_seq = QKeySequence::from_standard_key(StandardKey::Cut);
             let cut_shortcut = QShortcut::new_2a(cut_key_seq.as_ref(), main_ptr);
 
-            let f = Form {
+            let f = WithList {
                 main: main,
                 item_list: item_list.clone(),
-                rm: Slot::new(enclose! { (item_list) move || {
-                    item_list.borrow_mut().delete_sel_items();
-                }}),
                 delete_shortcut: delete_shortcut.into_ptr(),
                 cut_shortcut: cut_shortcut.into_ptr(),
-                add: Slot::new(enclose! { (item_list) move || {
-                    item_list.borrow_mut().add_item("New Item");
-                }}),
             };
-            rm_button.clicked().connect(&f.rm);
-            add_button.clicked().connect(&f.add);
             f.delete_shortcut
                 .activated()
                 .connect(&f.item_list.borrow_mut().rm);
@@ -101,23 +89,35 @@ impl<'a> Form<'a> {
             f
         }
     }
+
     pub fn show(&mut self) {
         unsafe {
             self.main.show();
         }
     }
+
+    pub fn main(&mut self) -> MutPtr<QWidget> {
+        unsafe { self.main.as_mut_ptr() }
+    }
+
+    pub fn set_stylesheet(&mut self, sheet: &str) {
+        load_stylesheet(sheet, self.main());
+    }
+
     pub fn add_items<'i: 'a, I>(&self, items: Vec<I>)
     where
         I: Into<&'i str>,
     {
         self.item_list.borrow_mut().set_cb_items(items);
     }
+
     unsafe fn setup_main() -> CppBox<QWidget> {
         let mut main = QWidget::new_0a();
         let layout = QVBoxLayout::new_0a();
         main.set_layout(layout.into_ptr());
         main
     }
+
     unsafe fn setup_button(name: &str, layout: &mut MutPtr<QLayout>) -> MutPtr<QPushButton> {
         let mut button = QPushButton::from_q_string(&qs(name));
         let button_ptr = button.as_mut_ptr();
@@ -130,7 +130,8 @@ fn main() {
     QApplication::init(|_app| unsafe {
         let _result = QResource::register_resource_q_string(&qs("/Users/jgerber/bin/listitem.rcc"));
 
-        let mut form = Form::new();
+        let mut form = WithList::new();
+        form.set_stylesheet("/Users/jgerber/bin/listitem.qss");
         form.show();
         form.item_list
             .borrow_mut()
