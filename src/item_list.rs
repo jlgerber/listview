@@ -1,5 +1,6 @@
 use super::list_items::ListItems;
 use super::utility::qs;
+use core::ops::Deref;
 use log;
 use qt_core::{Key, QString, Slot};
 use qt_gui::{QKeySequence, QStandardItemModel};
@@ -8,7 +9,7 @@ use qt_widgets::{
     cpp_core::{CppBox, MutPtr},
     q_abstract_item_view::SelectionMode,
     q_size_policy::Policy,
-    QAction, QActionGroup, QComboBox, QHBoxLayout, QLabel, QLayout, QListView, QShortcut,
+    QAction, QActionGroup, QComboBox, QFrame, QHBoxLayout, QLabel, QLayout, QListView, QShortcut,
     QSizePolicy, QToolBar, QToolButton, QVBoxLayout, QWidget,
 };
 use std::cell::RefCell;
@@ -75,6 +76,19 @@ unsafe impl NewWidget<QWidget, QWidget> for QWidget {
     }
 }
 
+unsafe impl NewWidget<QWidget, QFrame> for QFrame {
+    fn create(parent: &MutPtr<QWidget>) -> MutPtr<QFrame> {
+        unsafe {
+            let mut main = QFrame::new_0a();
+            let main_ptr = main.as_mut_ptr();
+            let mut parent_ptr = parent.layout();
+            assert!(!parent_ptr.is_null());
+            parent_ptr.add_widget(main.into_ptr());
+            main_ptr
+        }
+    }
+}
+
 /// Choose the type of layout that you want to create
 /// in the AddLayout trait implementation
 #[allow(dead_code)]
@@ -116,6 +130,18 @@ fn add_layout_to_widget(widget: &mut MutPtr<QWidget>, layout: LayoutType) {
                 add_layout_to_widget(self, layout);
                 self.as_mut_ref().unwrap().as_mut_ptr()
             }
+        }
+    }
+}
+
+unsafe impl AddLayout<QFrame> for MutPtr<QFrame> {
+    type Layout = LayoutType;
+
+    fn add_layout(&mut self, layout: LayoutType) -> MutPtr<QFrame> {
+        unsafe {
+            let mut qw: MutPtr<QWidget> = self.static_upcast_mut();
+            add_layout_to_widget(&mut qw, layout);
+            self.as_mut_ref().unwrap().as_mut_ptr()
         }
     }
 }
@@ -359,10 +385,11 @@ impl<'l> ItemList<'l> {
                 if selected.length() == 0 {
                     return;
                 }
-                for c in 0..selected.size() {
-                    let current_index = selected.at(c);
-                    listview_ptr.model().remove_row_1a(current_index.row());
-                }
+                // we need to sort the indexes first. Otherwise, depending upon selection order, we
+                // may not
+                let mut indexes = (0..selected.size()).into_iter().map(|x| selected.at(x).row()).collect::<Vec<_>>();
+                indexes.sort();
+                indexes.iter().rev().for_each(|c| {listview_ptr.model().remove_row_1a(*c); });
             }});
             let enter_sc = Slot::new(enclose_all! { () (mut listitems) move || {
                 let text = cbox_ptr.current_text();
@@ -579,7 +606,7 @@ impl<'l> ItemList<'l> {
     // * A MutPtr wrapping the QComboBox
     fn setup_combobox(name: &str, mut parent: &mut MutPtr<QWidget>) -> MutPtr<QComboBox> {
         unsafe {
-            let mut cb_widget = QWidget::create(&mut parent);
+            let mut cb_widget = QFrame::create(&mut parent);
             cb_widget.add_layout(LayoutType::HBoxLayout);
             cb_widget.set_object_name(&qs(format!("{}Widget", name)));
 
