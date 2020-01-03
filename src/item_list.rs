@@ -1,14 +1,15 @@
 use super::list_items::ListItems;
 use super::utility::qs;
-use qt_core::Slot;
-use qt_gui::QStandardItemModel;
+use log;
+use qt_core::{Key, QString, Slot};
+use qt_gui::{QKeySequence, QStandardItemModel};
 use qt_widgets::q_abstract_item_view::DragDropMode;
 use qt_widgets::{
     cpp_core::{CppBox, MutPtr},
     q_abstract_item_view::SelectionMode,
     q_size_policy::Policy,
-    QAction, QActionGroup, QComboBox, QHBoxLayout, QLabel, QLayout, QListView, QSizePolicy,
-    QToolBar, QToolButton, QVBoxLayout, QWidget,
+    QAction, QActionGroup, QComboBox, QHBoxLayout, QLabel, QLayout, QListView, QShortcut,
+    QSizePolicy, QToolBar, QToolButton, QVBoxLayout, QWidget,
 };
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -321,10 +322,12 @@ pub struct ItemList<'l> {
     pub model: CppBox<QStandardItemModel>,
     pub view: MutPtr<QListView>,
     pub items: Rc<RefCell<ListItems>>,
+    pub enter_shortcut: MutPtr<QShortcut>,
     pub rm: Slot<'l>,
     pub reorder_mode: Slot<'l>,
     pub rm_mode: Slot<'l>,
     pub add_mode: Slot<'l>,
+    pub enter_sc: Slot<'l>,
 }
 
 impl<'l> ItemList<'l> {
@@ -340,9 +343,14 @@ impl<'l> ItemList<'l> {
             let mut main_ptr = Self::setup_main_widget(&parent);
             let listitems = Rc::new(RefCell::new(ListItems::new()));
             let mut model = Self::setup_model();
+            let mut model_ptr = model.as_mut_ptr();
             let mode_toolbar = Rc::new(RefCell::new(ItemListModeToolbar::new(&mut main_ptr)));
             let cbox = Self::setup_combobox("ItemCombo", &mut main_ptr);
+            let cbox_ptr = cbox.clone();
             let listview_ptr = Self::setup_listview(model.as_mut_ptr(), &mut main_ptr.layout());
+            let key_seq = QKeySequence::from_int(Key::KeyReturn.to_int());
+            let enter_shortcut = QShortcut::new_2a(key_seq.as_ref(), main_ptr);
+
             let rm_slot = Slot::new(enclose_all! { ( mode_toolbar) (mut listview_ptr) move || {
                 if !mode_toolbar.borrow().is_remove_active() {
                     return;
@@ -351,11 +359,32 @@ impl<'l> ItemList<'l> {
                 if selected.length() == 0 {
                     return;
                 }
-                for c in 0..selected.length() {
-                    listview_ptr.model().remove_row_1a(c);
+                for c in 0..selected.size() {
+                    let current_index = selected.at(c);
+                    listview_ptr.model().remove_row_1a(current_index.row());
                 }
             }});
-
+            let enter_sc = Slot::new(enclose_all! { () (mut listitems) move || {
+                let text = cbox_ptr.current_text();
+                // validate that text is in the list
+                let mut found = false;
+                for cnt in 0..cbox_ptr.count() {
+                    let item = cbox_ptr.item_text(cnt);
+                    if QString::compare_2_q_string(&text,&item) == 0 {
+                        found = true;
+                        break;
+                    }
+                }
+                if !found {
+                    log::info!("user's entry not valid");
+                    return;
+                }
+                if model_ptr.find_items_1a(&text).length() > 0 {
+                    log::info!("entry already exists");
+                    return;
+                }
+                listitems.borrow_mut().add_item_to(text.to_std_string().as_str(),&mut model_ptr);
+            }});
             let f = Self {
                 _main: main_ptr,
                 model,
@@ -363,6 +392,7 @@ impl<'l> ItemList<'l> {
                 add_combobox: cbox,
                 view: listview_ptr,
                 items: listitems,
+                enter_shortcut: enter_shortcut.into_ptr(),
                 rm: rm_slot,
                 reorder_mode: Slot::new(enclose_all! {() (mut listview_ptr) move || {
                     listview_ptr.set_drag_drop_mode(DragDropMode::InternalMove);
@@ -376,6 +406,7 @@ impl<'l> ItemList<'l> {
                     listview_ptr.set_drag_enabled(false);
                     listview_ptr.set_drag_drop_mode(DragDropMode::NoDragDrop);
                 }}),
+                enter_sc,
             };
             f.mode_toolbar
                 .borrow_mut()
@@ -392,6 +423,7 @@ impl<'l> ItemList<'l> {
                 .add_mode_action
                 .triggered()
                 .connect(&f.add_mode);
+            f.enter_shortcut.activated().connect(&f.enter_sc);
             f
         }
     }
@@ -466,11 +498,14 @@ impl<'l> ItemList<'l> {
         }
     }
     #[allow(dead_code)]
-    pub fn add_cb_items<'c, I>(&mut self, items: Vec<I>)
+    /// set items in the combobox
+    pub fn set_cb_items<'c, I>(&mut self, items: Vec<I>)
     where
         I: Into<&'c str>,
     {
         unsafe {
+            self.remove_cb_items();
+            self.add_combobox.add_item_q_string(&qs(""));
             for item in items {
                 self.add_combobox.add_item_q_string(&qs(item.into()));
             }
