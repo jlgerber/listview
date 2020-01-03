@@ -20,15 +20,7 @@ QListView {
     padding-top: 6px;
     padding-bottom: 10px;
 }
-/* 
-#WithsToolbarModeButton {
-    qproperty-icon: url(":images/radio_btn.svg");
-    qproperty-iconSize: 14px;
-}
 
-#WithsToolbarModeButton:pressed {
-    qproperty-icon: url(":images/radio_btn_sel.svg");
-} */
 
 #WithsToolbarModeButton {
     margin: 0px;
@@ -39,6 +31,9 @@ QListView {
     border:none;
     background: transparent;
 } 
+QLabel#WithsCBLabel {
+    padding-right: 10px;
+}
 QComboBox {
     border: none; /*1px solid gray; */
     border-radius: 3px;
