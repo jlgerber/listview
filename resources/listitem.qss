@@ -1,0 +1,54 @@
+QListView::item {
+    border: 2px solid rgb(160,220,250);
+    margin: 2px;
+    background-color: rgb(80,160,200);
+    border-radius: 2px;
+    /* selection-color: red; */
+}
+QToolBar {
+    border: none;
+}
+QListView::item:selected:active {
+    background-color: rgb(110,190,250);
+}
+QListView {
+    background-color: rgb(80,80,80);
+    padding:5px;
+}
+
+#ItemComboWidget {
+    padding-top: 6px;
+    padding-bottom: 10px;
+}
+QComboBox {
+    border: none; /*1px solid gray; */
+    border-radius: 3px;
+    padding: 1px 18px 1px 3px;
+    min-width: 6em;
+    /* background: rgb(80,80,80); */
+     border-top-left-radius: 6px; 
+    border-bottom-left-radius: 6px;
+} 
+
+
+QComboBox:on { /* shift the text when the popup opens */
+    padding-top: 3px;
+    padding-left: 4px;
+}
+
+QComboBox::drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 20px;
+    background: rgb(60,60,60);
+    border-top-right-radius: 6px; 
+    border-bottom-right-radius: 6px;
+    border:none;    
+}
+
+QComboBox::down-arrow {
+    color: white;
+    image: url(:/images/dropdown.png);
+    width: 10px;
+    height: 10px;
+}

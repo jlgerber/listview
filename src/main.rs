@@ -1,5 +1,5 @@
-use qt_core::Key;
 use qt_core::Slot;
+use qt_core::{Key, QResource};
 use qt_widgets::{
     cpp_core::{CppBox, MutPtr},
     QApplication, QLayout, QPushButton, QShortcut, QVBoxLayout, QWidget,
@@ -67,14 +67,11 @@ impl<'a> Form<'a> {
         unsafe {
             let mut main = Self::setup_main();
             let main_ptr = main.as_mut_ptr();
+            load_stylesheet("/Users/jgerber/bin/listitem.qss", main.as_mut_ptr());
             let item_list = Rc::new(RefCell::new(ItemList::new(main_ptr)));
             //buttons
             let rm_button = Self::setup_button("Remove", &mut main.layout());
             let add_button = Self::setup_button("Add", &mut main.layout());
-            load_stylesheet(
-                "/Users/jgerber/src/rust/examples/qt/listitem/stylesheet.qss",
-                main.as_mut_ptr(),
-            );
             let key_seq = QKeySequence::from_int(Key::KeyBackspace.to_int()); //16777219
             let delete_shortcut = QShortcut::new_2a(key_seq.as_ref(), main_ptr);
 
@@ -109,6 +106,12 @@ impl<'a> Form<'a> {
             self.main.show();
         }
     }
+    pub fn add_items<'i: 'a, I>(&self, items: Vec<I>)
+    where
+        I: Into<&'i str>,
+    {
+        self.item_list.borrow_mut().set_cb_items(items);
+    }
     unsafe fn setup_main() -> CppBox<QWidget> {
         let mut main = QWidget::new_0a();
         let layout = QVBoxLayout::new_0a();
@@ -125,12 +128,14 @@ impl<'a> Form<'a> {
 
 fn main() {
     QApplication::init(|_app| unsafe {
+        let _result = QResource::register_resource_q_string(&qs("/Users/jgerber/bin/listitem.rcc"));
+
         let mut form = Form::new();
         form.show();
         form.item_list
             .borrow_mut()
             .set_items(vec!["Foo", "bar", "bla"]);
-        form.item_list.borrow_mut().set_cb_items(vec![
+        form.add_items(vec![
             "Foo",
             "Bar",
             "Bla",
