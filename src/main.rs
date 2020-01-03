@@ -14,7 +14,7 @@ pub mod list_items;
 use qt_gui::{q_key_sequence::StandardKey, QKeySequence};
 
 // makes it simpler to deal with the need to clone. Saw this here:
-// https://github.com/rust-webplatform/rust-todomvc/blob/master/src/main.rs#L142
+// https://github.com/rust-webplatwith_list/rust-todomvc/blob/master/src/main.rs#L142
 #[allow(unused_macros)]
 macro_rules! enclose {
     ( ($(  $x:ident ),*) $y:expr ) => {
@@ -83,9 +83,11 @@ impl<'a> WithList<'a> {
             f.delete_shortcut
                 .activated()
                 .connect(&f.item_list.borrow_mut().rm);
+
             f.cut_shortcut
                 .activated()
                 .connect(&f.item_list.borrow_mut().rm);
+
             f
         }
     }
@@ -130,13 +132,15 @@ fn main() {
     QApplication::init(|_app| unsafe {
         let _result = QResource::register_resource_q_string(&qs("/Users/jgerber/bin/listitem.rcc"));
 
-        let mut form = WithList::new();
-        form.set_stylesheet("/Users/jgerber/bin/listitem.qss");
-        form.show();
-        form.item_list
+        let mut with_list = WithList::new();
+        with_list.set_stylesheet("/Users/jgerber/bin/listitem.qss");
+
+        with_list
+            .item_list
             .borrow_mut()
             .set_items(vec!["Foo", "bar", "bla"]);
-        form.add_items(vec![
+
+        with_list.add_items(vec![
             "Foo",
             "Bar",
             "Bla",
@@ -147,6 +151,9 @@ fn main() {
             "animpublish",
             "animrender",
         ]);
+        with_list.item_list.borrow_mut().set_reorder_mode();
+        with_list.show();
+
         QApplication::exec()
     });
 }
