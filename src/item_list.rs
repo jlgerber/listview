@@ -363,7 +363,6 @@ impl ItemListModeToolbar {
         } else {
             QAction::from_q_string_q_object(&qs(name), action_grp_ptr)
         };
-        //let mut mode_action = QAction::from_q_string_q_object(&qs(name), action_grp_ptr);
         mode_action.set_checkable(true);
         mode_action.set_checked(checked);
 
