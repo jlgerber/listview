@@ -597,16 +597,7 @@ impl<'l> ItemList<'l> {
     /// * The item to be found, as a &MutPtr<QString>
     pub fn find_item<'a>(&mut self, item: Ref<QString>) -> Option<MutPtr<QStandardItem>> {
         unsafe {
-            let mut location = self
-                .model
-                .find_items_2a(item, MatchFlag::MatchCaseSensitive.into());
-            if location.count() == 0 {
-                return None;
-            }
-            let first = location.take_first();
-            // let idx = first.index();
-            //self.view.scroll_to_1a(&idx);
-            Some(first)
+            return Self::_find_item(item, &self.model.as_mut_ptr());
         }
     }
 
