@@ -14,7 +14,6 @@ QListView#WithsListView::item {
     border-radius: 2px;
 }
 
-
 QListView#WithsListView::item:selected { /*:active */
     background-color: rgb(110,190,250);
 }
