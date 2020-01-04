@@ -76,7 +76,6 @@ macro_rules! take_mut_ref {
 /// ```
 /// Slot::new(enclose_all!{(layout) (mut toolbar, mut button)} move || {...do stuff});
 /// ```
-
 macro_rules! enclose_all {
     ( ($(  $x:ident ),*) ($( mut $mx:ident ),*) $y:expr ) => {
         {
@@ -87,6 +86,7 @@ macro_rules! enclose_all {
         }
     };
 }
+
 //
 // TRAITS
 //
@@ -234,7 +234,7 @@ impl ItemListModeToolbar {
             );
 
             // Find
-            let (find_mode_action, find_button_ref) = Self::create_mode_action(
+            let (find_mode_action, _find_button_ref) = Self::create_mode_action(
                 "Find",
                 action_group_ptr,
                 &mut toolbar.as_mut_ptr(),
