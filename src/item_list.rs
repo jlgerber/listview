@@ -1,9 +1,8 @@
 use super::list_items::ListItems;
 use super::utility::qs;
 use log;
-use qt_core::q_item_selection_model::SelectionFlag;
+// use qt_core::q_item_selection_model::SelectionFlag;
 use qt_core::MatchFlag;
-use qt_core::QFlags;
 use qt_core::QSize;
 use qt_core::ToolButtonStyle;
 use qt_core::{Key, QString, Slot};
@@ -14,7 +13,7 @@ use qt_gui::{
 use qt_gui::{QKeySequence, QStandardItem, QStandardItemModel};
 use qt_widgets::q_abstract_item_view::DragDropMode;
 use qt_widgets::{
-    cpp_core::{CppBox, MutPtr, MutRef, Ref},
+    cpp_core::{CppBox, MutPtr, Ref},
     q_abstract_item_view::SelectionMode,
     q_action::ActionEvent,
     q_size_policy::Policy,
@@ -23,6 +22,7 @@ use qt_widgets::{
 };
 use std::cell::RefCell;
 use std::rc::Rc;
+
 #[allow(unused_macros)]
 /// Macro to clone items before moving them into a closure.
 /// Used to handle reference counted items without cluttering
@@ -43,6 +43,27 @@ macro_rules! enclose {
         }
     };
 }
+
+#[allow(unused_macros)]
+macro_rules! take_ref {
+    ( ($(  $x:ident ),*) $y:expr ) => {
+        {
+            $(let $x = $x.as_ref();)*
+            $y
+        }
+    };
+}
+
+#[allow(unused_macros)]
+macro_rules! take_mut_ref {
+    ( ($(  $x:ident ),*) $y:expr ) => {
+        {
+            $(let mut $x = $x.as_mut_ref();)*
+            $y
+        }
+    };
+}
+
 #[allow(unused_macros)]
 /// Works like enclose but provides for both non and mutable
 /// clones.
