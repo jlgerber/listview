@@ -609,7 +609,6 @@ impl<'l> ItemList<'l> {
         unsafe {
             if let Some(item) = Self::_find_item(item, model) {
                 let idx = item.index();
-                view.set_current_index(&idx);
                 view.scroll_to_1a(&idx);
                 return true;
             }
