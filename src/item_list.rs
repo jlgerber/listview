@@ -489,18 +489,20 @@ impl<'l> ItemList<'l> {
 
                 rm: rm_slot,
 
-                find_mode: Slot::new(enclose_all! { () ( mut cbox_ptr) move || {
-                    //listview_ptr.set_drag_enabled(true);
-                    //listview_ptr.set_drag_drop_mode(DragDropMode::NoDragDrop);
-                    //cbox_ptr.set_disabled(true);
-                    cbox_ptr.set_enabled(true);
-                }}),
+                find_mode: Slot::new(
+                    take_mut_ref! { (cblabel) enclose_all! { () ( mut cbox_ptr) move || {
+                        cbox_ptr.set_enabled(true);
+                        if let Some(mut cblabel) = cblabel {cblabel.set_text(&qs("Find Item"))};
+                    }}},
+                ),
 
-                add_mode: Slot::new(enclose_all! { () ( mut cbox_ptr) move || {
-                    //listview_ptr.set_drag_enabled(false);
-                    //listview_ptr.set_drag_drop_mode(DragDropMode::NoDragDrop);
-                    cbox_ptr.set_enabled(true);
-                }}),
+                add_mode: Slot::new(
+                    take_mut_ref! {(cblabel) enclose_all! { () ( mut cbox_ptr) move || {
+                        cbox_ptr.set_enabled(true);
+                        if let Some(mut cblabel) = cblabel {cblabel.set_text(&qs("Add Item"))};
+
+                    }}},
+                ),
 
                 enter_sc,
             };
