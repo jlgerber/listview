@@ -28,14 +28,10 @@ fn main() {
             wl_c2.borrow_mut().set_add_mode();
         });
 
-        //let key_seq = QKeySequence::from_2_int(Key::KeyControl.to_int(), Key::KeyF.to_int());
-        //let key_seq = QKeySequence::from_int( Key::KeyF.to_int());
        let key_seq = QKeySequence::from_q_string(&qs("Ctrl+f"));
         let find_shortcut = QShortcut::new_2a(key_seq.as_ref(), with_list.borrow_mut().main());
 
-        //let key_seq = QKeySequence::from_2_int(Key::KeyControl.to_int(), Key::KeyA.to_int());
         let key_seq = QKeySequence::from_q_string(&qs("Ctrl+a"));
-        //let key_seq = QKeySequence::from_int( Key::KeyA.to_int());
         let add_shortcut = QShortcut::new_2a(key_seq.as_ref(), with_list.borrow_mut().main());
 
         with_list.borrow_mut().add_items(vec![
