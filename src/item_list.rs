@@ -428,7 +428,7 @@ impl<'l> ItemList<'l> {
             let key_seq = QKeySequence::from_int(Key::KeyReturn.to_int());
             let enter_shortcut = QShortcut::new_2a(key_seq.as_ref(), main_ptr);
 
-            let rm_slot = Slot::new(enclose_all! { (mode_toolbar) (mut listview_ptr) move || {
+            let rm_slot = Slot::new(enclose_all! { () (mut listview_ptr) move || {
                 let selected = listview_ptr.selection_model().selected_indexes();
                 if selected.length() == 0 {
                     return;
