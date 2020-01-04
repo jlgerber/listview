@@ -359,7 +359,7 @@ impl ItemListModeToolbar {
         action_grp_ptr: MutPtr<QActionGroup>,
         toolbar: &mut MutPtr<QToolBar>,
         checked: bool,
-        icon: Option<Ref<QIcon>>,
+        icon: Option<QRef<QIcon>>,
     ) -> (CppBox<QAction>, MutPtr<QToolButton>) {
         let mut mode_action = if let Some(icon) = icon {
             QAction::from_q_icon_q_string_q_object(icon, &qs(name), action_grp_ptr)
@@ -581,7 +581,7 @@ impl<'l> ItemList<'l> {
     }
 
     fn _find_item<'a>(
-        item: Ref<QString>,
+        item: QRef<QString>,
         model: &MutPtr<QStandardItemModel>,
     ) -> Option<MutPtr<QStandardItem>> {
         unsafe {
