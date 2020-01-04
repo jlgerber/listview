@@ -416,11 +416,11 @@ impl<'l> ItemList<'l> {
             let listitems = Rc::new(RefCell::new(ListItems::new()));
 
             let mut model = Self::setup_model();
-            let mut model_ptr = model.as_mut_ptr();
+            let model_ptr = model.as_mut_ptr();
 
             let mode_toolbar = Rc::new(RefCell::new(ItemListModeToolbar::new(&mut main_ptr)));
 
-            let cbox = Self::setup_combobox("ItemCombo", &mut main_ptr);
+            let (cblabel, cbox) = Self::setup_combobox("ItemCombo", &mut main_ptr);
             let cbox_ptr = cbox.clone();
 
             let listview_ptr = Self::setup_listview(model.as_mut_ptr(), &mut main_ptr.layout());
@@ -759,7 +759,10 @@ impl<'l> ItemList<'l> {
     //
     // # Returns
     // * A MutPtr wrapping the QComboBox
-    fn setup_combobox(name: &str, mut parent: &mut MutPtr<QWidget>) -> MutPtr<QComboBox> {
+    fn setup_combobox(
+        name: &str,
+        mut parent: &mut MutPtr<QWidget>,
+    ) -> (MutPtr<QLabel>, MutPtr<QComboBox>) {
         unsafe {
             let mut cb_widget = QFrame::create(&mut parent);
             cb_widget.add_layout(LayoutType::HBoxLayout);
@@ -767,6 +770,7 @@ impl<'l> ItemList<'l> {
 
             let mut cb_label = QLabel::from_q_string(&qs("Add Item"));
             cb_label.set_object_name(&qs("WithsCBLabel"));
+            let cb_label_ptr = cb_label.as_mut_ptr();
             cb_widget.layout().add_widget(cb_label.into_ptr());
 
             let mut cbox = QComboBox::new_0a();
@@ -778,11 +782,11 @@ impl<'l> ItemList<'l> {
             let mut layout = cb_widget.layout().dynamic_cast_mut::<QHBoxLayout>();
             if layout.is_null() {
                 log::error!("unable to cast layout to QHBoxLayout");
-                return cbox_ptr;
+                return (cb_label_ptr, cbox_ptr);
             }
             layout.set_stretch(1, 1);
 
-            cbox_ptr
+            (cb_label_ptr, cbox_ptr)
         }
     }
 }
