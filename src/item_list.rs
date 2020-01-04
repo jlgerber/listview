@@ -60,6 +60,7 @@ macro_rules! take_ref {
 macro_rules! take_mut_ref {
     ( ($(  $x:ident ),*) $y:expr ) => {
         {
+            #[allow(unused_mut)]
             $(let mut $x = $x.as_mut_ref();)*
             $y
         }
@@ -75,7 +76,7 @@ macro_rules! take_mut_ref {
 /// { enclose_all! { (<ARG>) (mut <ARG>,) move |<ARG>| {} }}
 /// ```
 /// EG
-/// ```
+/// ```ignore
 /// Slot::new(enclose_all!{(layout) (mut toolbar, mut button)} move || {...do stuff});
 /// ```
 macro_rules! enclose_all {
