@@ -617,11 +617,8 @@ impl<'l> ItemList<'l> {
     }
 
     pub fn scroll_to_item<'a>(&mut self, item: Ref<QString>) {
-        if let Some(item) = self.find_item(item) {
-            unsafe {
-                let idx = item.index();
-                self.view.scroll_to_1a(&idx);
-            }
+        unsafe {
+            Self::_scroll_to_item(item, &mut self.view, &mut self.model.as_mut_ptr());
         }
     }
 
