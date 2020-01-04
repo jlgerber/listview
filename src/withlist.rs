@@ -110,6 +110,14 @@ impl<'a> WithList<'a> {
         self.item_list.borrow_mut().set_cb_items(items);
     }
 
+    pub fn set_add_mode(&self) {
+        self.item_list.borrow_mut().set_add_mode();
+    }
+
+    pub fn set_find_mode(&self) {
+        self.item_list.borrow_mut().set_find_mode();
+    }
+
     unsafe fn setup_main() -> CppBox<QWidget> {
         let mut main = QWidget::new_0a();
         let layout = QVBoxLayout::new_0a();
