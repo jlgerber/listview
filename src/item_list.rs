@@ -1,26 +1,28 @@
 use super::list_items::ListItems;
 use super::utility::qs;
 use log;
-// use qt_core::q_item_selection_model::SelectionFlag;
+use qt_core::q_item_selection_model::SelectionFlag;
 use qt_core::MatchFlag;
 use qt_core::QSize;
+use qt_core::QModelIndex;
 use qt_core::ToolButtonStyle;
 use qt_core::{Key, QString, Slot};
 use qt_gui::{
     q_icon::{Mode, State},
     QIcon,
 };
+use qt_widgets::cpp_core::Ref as QRef;
 use qt_gui::{QKeySequence, QStandardItem, QStandardItemModel};
 use qt_widgets::q_abstract_item_view::DragDropMode;
 use qt_widgets::{
-    cpp_core::{CppBox, MutPtr, Ref},
+    cpp_core::{CppBox, MutPtr},
     q_abstract_item_view::SelectionMode,
     q_action::ActionEvent,
     q_size_policy::Policy,
     QAction, QActionGroup, QComboBox, QFrame, QHBoxLayout, QLabel, QLayout, QListView, QShortcut,
     QSizePolicy, QToolBar, QToolButton, QVBoxLayout, QWidget,
 };
-use std::cell::RefCell;
+use std::cell::{RefCell};
 use std::rc::Rc;
 
 #[allow(unused_macros)]
