@@ -447,7 +447,7 @@ impl<'l> ItemList<'l> {
                 enclose_all! { (mode_toolbar) (mut listitems, mut cbox_ptr, mut listview_ptr, mut model_ptr) move || {
                     let text = cbox_ptr.current_text();
                     if mode_toolbar.borrow().is_find_active() {
-                        if Self::_scroll_to_item(text.as_ref(), &mut listview_ptr, &mut model_ptr) {
+                        if Self::_scroll_to_item(text.as_ref(), &mut listview_ptr, &mut model_ptr, true) {
                             cbox_ptr.clear_edit_text();
                         }
                         return;
@@ -468,7 +468,7 @@ impl<'l> ItemList<'l> {
                         return;
                     }
                     if model_ptr.find_items_1a(&text).length() > 0 {
-                        if Self::_scroll_to_item(text.as_ref(), &mut listview_ptr, &mut model_ptr) {
+                        if Self::_scroll_to_item(text.as_ref(), &mut listview_ptr, &mut model_ptr, true) {
                             cbox_ptr.clear_edit_text();
                         }
                         return;
@@ -598,33 +598,47 @@ impl<'l> ItemList<'l> {
     ///
     /// # Arguments
     /// * The item to be found, as a &MutPtr<QString>
-    pub fn find_item<'a>(&mut self, item: Ref<QString>) -> Option<MutPtr<QStandardItem>> {
+    pub fn find_item<'a>(&mut self, item: QRef<QString>) -> Option<MutPtr<QStandardItem>> {
         unsafe {
             return Self::_find_item(item, &self.model.as_mut_ptr());
         }
     }
 
     fn _scroll_to_item<'a>(
-        item: Ref<QString>,
+        item: QRef<QString>,
         view: &mut MutPtr<QListView>,
         model: &mut MutPtr<QStandardItemModel>,
+        select: bool
     ) -> bool {
         unsafe {
             if let Some(item) = Self::_find_item(item, model) {
                 let idx = item.index();
                 view.scroll_to_1a(&idx);
+                if select == true {
+                    Self::_select_item(idx.as_ref(), &view);
+                }
                 return true;
             }
             false
         }
     }
 
-    pub fn scroll_to_item<'a>(&mut self, item: Ref<QString>) {
+    pub fn scroll_to_item<'a>(&mut self, item: QRef<QString>) {
         unsafe {
-            Self::_scroll_to_item(item, &mut self.view, &mut self.model.as_mut_ptr());
+            Self::_scroll_to_item(item, &mut self.view, &mut self.model.as_mut_ptr(), true);
         }
     }
 
+    unsafe fn _select_item(
+        item: QRef<QModelIndex>,
+        view: &MutPtr<QListView>
+    ) {
+        view.selection_model().set_current_index(item, SelectionFlag::SelectCurrent.into());
+    }
+    #[allow(dead_code)]
+    pub fn select_item(item:QRef<QModelIndex>, view: &MutPtr<QListView>) {
+        Self::select_item(item, view);
+    }
     #[allow(dead_code)]
     /// Delete selected items from the list.
     ///
