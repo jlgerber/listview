@@ -119,10 +119,10 @@ impl<'l> ItemList<'l> {
         unsafe {
             let mut main_ptr = Self::setup_main_widget(&parent);
 
-            let listitems = Rc::new(RefCell::new(ListItems::new()));
-
             let mut model = Self::setup_model();
             let model_ptr = model.as_mut_ptr();
+
+            let listitems = Rc::new(RefCell::new(ListItems::new(model_ptr)));
 
             let mode_toolbar = Rc::new(RefCell::new(ItemListModeToolbar::new(&mut main_ptr)));
 
@@ -185,7 +185,7 @@ impl<'l> ItemList<'l> {
                         return;
                     }
 
-                    listitems.borrow_mut().add_item_to(text.to_std_string().as_str(),&mut model_ptr);
+                    listitems.borrow_mut().add_item_to(text.to_std_string().as_str());//,&mut model_ptr);
                     cbox_ptr.clear_edit_text();
                     listview_ptr.scroll_to_bottom();
 
@@ -289,11 +289,7 @@ impl<'l> ItemList<'l> {
     where
         I: Into<&'a str>,
     {
-        unsafe {
-            self.items
-                .borrow_mut()
-                .add_item_to(item.into(), &mut self.model.as_mut_ptr());
-        }
+        self.items.borrow_mut().add_item_to(item.into()); //, &mut self.model.as_mut_ptr());
     }
 
     /// add an item to the pulldown
@@ -306,16 +302,34 @@ impl<'l> ItemList<'l> {
         }
     }
 
-    pub fn scroll_to_item<'a>(&mut self, item: QRef<QString>) {
+    /// scroll to the provided item in the list
+    ///
+    /// # Arguments
+    /// * `item` - A Ref wrapped QString.
+    /// * `select1 - a boolean indicating whether the item should be selected as well as centered
+    /// in the view
+    pub fn scroll_to_item<'a>(&mut self, item: QRef<QString>, select_item: bool) {
         unsafe {
-            Self::_scroll_to_item(item, &mut self.view, &mut self.model.as_mut_ptr(), true);
+            Self::_scroll_to_item(
+                item,
+                &mut self.view,
+                &mut self.model.as_mut_ptr(),
+                select_item,
+            );
         }
     }
 
+    /// Select the provided item given a Ref wrapped QModelIndex
+    ///
+    /// # Arguments
+    /// * `item` - QModelIndex of the item we wish to select
+    ///
+    /// # Returns
+    /// * None
     #[allow(dead_code)]
-    pub fn select_item(item: QRef<QModelIndex>, view: &MutPtr<QListView>) {
+    pub fn select_item(&mut self, item: QRef<QModelIndex>) {
         unsafe {
-            Self::_select_item(item, view);
+            Self::_select_item(item, &self.view);
         }
     }
 
@@ -340,7 +354,10 @@ impl<'l> ItemList<'l> {
     }
 
     #[allow(dead_code)]
-    /// Set items in the combobox
+    /// Set comboboc items, replacing any extant items
+    ///
+    /// # Arguments
+    /// * `items` - Vector of items that may be converted to a &str vie Into<&'cstr>
     pub fn set_cb_items<'c, I>(&mut self, items: Vec<I>)
     where
         I: Into<&'c str>,
@@ -356,12 +373,24 @@ impl<'l> ItemList<'l> {
 
     #[allow(dead_code)]
     /// Remove all items from the combobox
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns None
     pub fn remove_cb_items(&mut self) {
         unsafe {
             self.add_combobox.clear();
         }
     }
 
+    /// Given a path as a &str to a stylesheet, apply it to the components.
+    ///
+    /// # Arguments
+    /// * `sheet` - Path to the qss stylesheet
+    ///
+    /// # Returns
+    /// * None
     pub fn set_stylesheet(&mut self, sheet: &str) {
         load_stylesheet(sheet, self.main);
     }
