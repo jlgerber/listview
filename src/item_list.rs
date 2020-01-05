@@ -1,28 +1,29 @@
 use super::list_items::ListItems;
 use super::utility::qs;
+use crate::utility::load_stylesheet;
 use log;
 use qt_core::q_item_selection_model::SelectionFlag;
 use qt_core::MatchFlag;
-use qt_core::QSize;
 use qt_core::QModelIndex;
+use qt_core::QSize;
 use qt_core::ToolButtonStyle;
 use qt_core::{Key, QString, Slot};
 use qt_gui::{
     q_icon::{Mode, State},
     QIcon,
 };
+use qt_gui::{q_key_sequence::StandardKey, QKeySequence, QStandardItem, QStandardItemModel};
 use qt_widgets::cpp_core::Ref as QRef;
-use qt_gui::{QKeySequence, QStandardItem, QStandardItemModel};
 use qt_widgets::q_abstract_item_view::DragDropMode;
 use qt_widgets::{
     cpp_core::{CppBox, MutPtr},
     q_abstract_item_view::SelectionMode,
     q_action::ActionEvent,
     q_size_policy::Policy,
-    QAction, QActionGroup, QComboBox, QFrame, QHBoxLayout, QLabel, QLayout, QListView, QShortcut,
-    QSizePolicy, QToolBar, QToolButton, QVBoxLayout, QWidget,
+    QAction, QActionGroup, QComboBox, QFrame, QHBoxLayout, QLabel, QLayout, QListView, QPushButton,
+    QShortcut, QSizePolicy, QToolBar, QToolButton, QVBoxLayout, QWidget,
 };
-use std::cell::{RefCell};
+use std::cell::RefCell;
 use std::rc::Rc;
 
 #[allow(unused_macros)]
@@ -391,13 +392,15 @@ impl ItemListModeToolbar {
 /// its clients, including the toolbar, the model, the view,
 /// the actual items backing data, and various slots
 pub struct ItemList<'l> {
-    pub _main: MutPtr<QWidget>,
+    pub main: MutPtr<QWidget>,
     pub mode_toolbar: Rc<RefCell<ItemListModeToolbar>>,
     pub add_combobox: MutPtr<QComboBox>,
     pub model: CppBox<QStandardItemModel>,
     pub view: MutPtr<QListView>,
     pub items: Rc<RefCell<ListItems>>,
     pub enter_shortcut: MutPtr<QShortcut>,
+    pub delete_shortcut: MutPtr<QShortcut>,
+    pub cut_shortcut: MutPtr<QShortcut>,
     pub rm: Slot<'l>,
     pub find_mode: Slot<'l>,
     pub add_mode: Slot<'l>,
@@ -412,7 +415,7 @@ impl<'l> ItemList<'l> {
     ///
     /// # Returns
     /// * An ItemList instance
-    pub fn new(parent: MutPtr<QWidget>) -> ItemList<'l> {
+    pub fn new(parent: &mut MutPtr<QWidget>) -> ItemList<'l> {
         unsafe {
             let mut main_ptr = Self::setup_main_widget(&parent);
 
@@ -430,6 +433,14 @@ impl<'l> ItemList<'l> {
 
             let key_seq = QKeySequence::from_int(Key::KeyReturn.to_int());
             let enter_shortcut = QShortcut::new_2a(key_seq.as_ref(), main_ptr);
+            //buttons
+            let _save_button = Self::setup_button("Save", &mut main_ptr.layout());
+            // shortcuts
+            let key_seq = QKeySequence::from_int(Key::KeyBackspace.to_int());
+            let delete_shortcut = QShortcut::new_2a(key_seq.as_ref(), main_ptr);
+
+            let cut_key_seq = QKeySequence::from_standard_key(StandardKey::Cut);
+            let cut_shortcut = QShortcut::new_2a(cut_key_seq.as_ref(), main_ptr);
 
             let rm_slot = Slot::new(enclose_all! { () (mut listview_ptr) move || {
                 let selected = listview_ptr.selection_model().selected_indexes();
@@ -482,14 +493,15 @@ impl<'l> ItemList<'l> {
             );
 
             let f = Self {
-                _main: main_ptr,
+                main: main_ptr,
                 model,
                 mode_toolbar,
                 add_combobox: cbox,
                 view: listview_ptr,
                 items: listitems,
                 enter_shortcut: enter_shortcut.into_ptr(),
-
+                delete_shortcut: delete_shortcut.into_ptr(),
+                cut_shortcut: cut_shortcut.into_ptr(),
                 rm: rm_slot,
 
                 find_mode: Slot::new(
@@ -523,6 +535,10 @@ impl<'l> ItemList<'l> {
                 .connect(&f.add_mode);
 
             f.enter_shortcut.activated().connect(&f.enter_sc);
+
+            f.delete_shortcut.activated().connect(&f.rm);
+
+            f.cut_shortcut.activated().connect(&f.rm);
 
             f
         }
@@ -580,20 +596,6 @@ impl<'l> ItemList<'l> {
         }
     }
 
-    fn _find_item<'a>(
-        item: QRef<QString>,
-        model: &MutPtr<QStandardItemModel>,
-    ) -> Option<MutPtr<QStandardItem>> {
-        unsafe {
-            let mut location = model.find_items_2a(item, MatchFlag::MatchCaseSensitive.into());
-            if location.count() == 0 {
-                return None;
-            }
-            let first = location.take_first();
-            Some(first)
-        }
-    }
-
     /// add an item to the pulldown
     ///
     /// # Arguments
@@ -604,42 +606,19 @@ impl<'l> ItemList<'l> {
         }
     }
 
-    fn _scroll_to_item<'a>(
-        item: QRef<QString>,
-        view: &mut MutPtr<QListView>,
-        model: &mut MutPtr<QStandardItemModel>,
-        select: bool
-    ) -> bool {
-        unsafe {
-            if let Some(item) = Self::_find_item(item, model) {
-                let idx = item.index();
-                view.scroll_to_1a(&idx);
-                if select == true {
-                    Self::_select_item(idx.as_ref(), &view);
-                }
-                return true;
-            }
-            false
-        }
-    }
-
     pub fn scroll_to_item<'a>(&mut self, item: QRef<QString>) {
         unsafe {
             Self::_scroll_to_item(item, &mut self.view, &mut self.model.as_mut_ptr(), true);
         }
     }
 
-    unsafe fn _select_item(
-        item: QRef<QModelIndex>,
-        view: &MutPtr<QListView>
-    ) {
-        view.selection_model().set_current_index(item, SelectionFlag::SelectCurrent.into());
+    #[allow(dead_code)]
+    pub fn select_item(item: QRef<QModelIndex>, view: &MutPtr<QListView>) {
+        unsafe {
+            Self::_select_item(item, view);
+        }
     }
 
-    #[allow(dead_code)]
-    pub fn select_item(item:QRef<QModelIndex>, view: &MutPtr<QListView>) {
-        unsafe{Self::_select_item(item, view);}
-    }
     #[allow(dead_code)]
     /// Delete selected items from the list.
     ///
@@ -681,6 +660,48 @@ impl<'l> ItemList<'l> {
         unsafe {
             self.add_combobox.clear();
         }
+    }
+
+    pub fn set_stylesheet(&mut self, sheet: &str) {
+        load_stylesheet(sheet, self.main);
+    }
+
+    fn _find_item<'a>(
+        item: QRef<QString>,
+        model: &MutPtr<QStandardItemModel>,
+    ) -> Option<MutPtr<QStandardItem>> {
+        unsafe {
+            let mut location = model.find_items_2a(item, MatchFlag::MatchCaseSensitive.into());
+            if location.count() == 0 {
+                return None;
+            }
+            let first = location.take_first();
+            Some(first)
+        }
+    }
+
+    fn _scroll_to_item<'a>(
+        item: QRef<QString>,
+        view: &mut MutPtr<QListView>,
+        model: &mut MutPtr<QStandardItemModel>,
+        select: bool,
+    ) -> bool {
+        unsafe {
+            if let Some(item) = Self::_find_item(item, model) {
+                let idx = item.index();
+                view.scroll_to_1a(&idx);
+                if select == true {
+                    Self::_select_item(idx.as_ref(), &view);
+                }
+                return true;
+            }
+            false
+        }
+    }
+
+    unsafe fn _select_item(item: QRef<QModelIndex>, view: &MutPtr<QListView>) {
+        view.selection_model()
+            .set_current_index(item, SelectionFlag::SelectCurrent.into());
     }
 
     #[allow(dead_code)]
@@ -730,34 +751,6 @@ impl<'l> ItemList<'l> {
         }
     }
 
-    // set up the ListView, configuring drag and drop, registering
-    // the model, and adding it into the supplied layout
-    //
-    // # Arguments
-    // * `model` - the instance of the QStandardItemModel, configured
-    // * `layout` - The parent layout
-    //
-    // # Returns
-    // * MutPtr wrapped QListView instance
-    fn setup_listview(
-        model: MutPtr<QStandardItemModel>,
-        layout: &mut MutPtr<QLayout>,
-    ) -> MutPtr<QListView> {
-        unsafe {
-            let mut qlv = QListView::new_0a();
-            qlv.set_object_name(&qs("WithsListView"));
-            qlv.set_model(model);
-            qlv.set_drag_enabled(true);
-            qlv.set_selection_mode(SelectionMode::ExtendedSelection);
-            qlv.set_drag_drop_overwrite_mode(false);
-            qlv.set_drag_drop_mode(DragDropMode::InternalMove);
-            let qlv_ptr = qlv.as_mut_ptr();
-            layout.add_widget(qlv.into_ptr());
-
-            qlv_ptr
-        }
-    }
-
     // Given a name and a parent, construct a QComboBox and return it
     //
     // #Arguments
@@ -795,5 +788,40 @@ impl<'l> ItemList<'l> {
 
             (cb_label_ptr, cbox_ptr)
         }
+    }
+
+    // set up the ListView, configuring drag and drop, registering
+    // the model, and adding it into the supplied layout
+    //
+    // # Arguments
+    // * `model` - the instance of the QStandardItemModel, configured
+    // * `layout` - The parent layout
+    //
+    // # Returns
+    // * MutPtr wrapped QListView instance
+    fn setup_listview(
+        model: MutPtr<QStandardItemModel>,
+        layout: &mut MutPtr<QLayout>,
+    ) -> MutPtr<QListView> {
+        unsafe {
+            let mut qlv = QListView::new_0a();
+            qlv.set_object_name(&qs("WithsListView"));
+            qlv.set_model(model);
+            qlv.set_drag_enabled(true);
+            qlv.set_selection_mode(SelectionMode::ExtendedSelection);
+            qlv.set_drag_drop_overwrite_mode(false);
+            qlv.set_drag_drop_mode(DragDropMode::InternalMove);
+            let qlv_ptr = qlv.as_mut_ptr();
+            layout.add_widget(qlv.into_ptr());
+
+            qlv_ptr
+        }
+    }
+
+    unsafe fn setup_button(name: &str, layout: &mut MutPtr<QLayout>) -> MutPtr<QPushButton> {
+        let mut button = QPushButton::from_q_string(&qs(name));
+        let button_ptr = button.as_mut_ptr();
+        layout.add_widget(button.into_ptr());
+        button_ptr
     }
 }
