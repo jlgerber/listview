@@ -2,7 +2,7 @@ use qt_core::QString;
 use qt_core::{q_io_device::OpenModeFlag, QFile, QFlags, QTextStream};
 use qt_widgets::cpp_core::CppBox;
 
-use qt_widgets::{cpp_core::MutPtr, QWidget};
+use qt_widgets::{cpp_core::MutPtr, QWidget, QVBoxLayout, QHBoxLayout};
 
 /// Given an input of &str or String, return a boxed QString
 pub fn qs<S: AsRef<str>>(input: S) -> CppBox<QString> {
@@ -20,5 +20,26 @@ pub fn load_stylesheet(sheet: &str, mut widget: MutPtr<QWidget>) {
         } else {
             log::warn!("stylesheet not found");
         }
+    }
+}
+
+
+pub fn create_vlayout() -> CppBox<QVBoxLayout> {
+    unsafe {
+        let mut pc_vlayout = QVBoxLayout::new_0a();
+        pc_vlayout.set_margin(0);
+        pc_vlayout.set_contents_margins_4a(0, 0, 0, 0);
+        pc_vlayout.set_spacing(0);
+        pc_vlayout
+    }
+}
+
+pub fn create_hlayout() -> CppBox<QHBoxLayout> {
+    unsafe {
+        let mut pc_hlayout = QHBoxLayout::new_0a();
+        pc_hlayout.set_margin(0);
+        pc_hlayout.set_contents_margins_4a(0, 0, 0, 0);
+        pc_hlayout.set_spacing(0);
+        pc_hlayout
     }
 }

@@ -635,9 +635,10 @@ impl<'l> ItemList<'l> {
     ) {
         view.selection_model().set_current_index(item, SelectionFlag::SelectCurrent.into());
     }
+
     #[allow(dead_code)]
     pub fn select_item(item:QRef<QModelIndex>, view: &MutPtr<QListView>) {
-        Self::select_item(item, view);
+        unsafe{Self::_select_item(item, view);}
     }
     #[allow(dead_code)]
     /// Delete selected items from the list.
