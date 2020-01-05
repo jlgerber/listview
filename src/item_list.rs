@@ -1,27 +1,19 @@
 use super::list_items::ListItems;
 use super::utility::qs;
+use crate::toolbar::ItemListModeToolbar;
+pub use crate::traits::*;
 use crate::utility::load_stylesheet;
 use log;
-use qt_core::q_item_selection_model::SelectionFlag;
-use qt_core::MatchFlag;
-use qt_core::QModelIndex;
-use qt_core::QSize;
-use qt_core::ToolButtonStyle;
-use qt_core::{Key, QString, Slot};
-use qt_gui::{
-    q_icon::{Mode, State},
-    QIcon,
-};
+use qt_core::{q_item_selection_model::SelectionFlag, Key, MatchFlag, QModelIndex, QString, Slot};
 use qt_gui::{q_key_sequence::StandardKey, QKeySequence, QStandardItem, QStandardItemModel};
-use qt_widgets::cpp_core::Ref as QRef;
-use qt_widgets::q_abstract_item_view::DragDropMode;
+//use qt_widgets::cpp_core::Ref as QRef;
 use qt_widgets::{
+    cpp_core::Ref as QRef,
     cpp_core::{CppBox, MutPtr},
+    q_abstract_item_view::DragDropMode,
     q_abstract_item_view::SelectionMode,
     q_action::ActionEvent,
-    q_size_policy::Policy,
-    QAction, QActionGroup, QComboBox, QFrame, QHBoxLayout, QLabel, QLayout, QListView, QPushButton,
-    QShortcut, QSizePolicy, QToolBar, QToolButton, QVBoxLayout, QWidget,
+    QComboBox, QFrame, QHBoxLayout, QLabel, QLayout, QListView, QPushButton, QShortcut, QWidget,
 };
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -89,298 +81,6 @@ macro_rules! enclose_all {
             $y
         }
     };
-}
-
-//
-// TRAITS
-//
-
-pub unsafe trait NewWidget<P, R> {
-    fn create(parent: &MutPtr<P>) -> MutPtr<R>;
-}
-
-unsafe impl NewWidget<QWidget, QWidget> for QWidget {
-    fn create(parent: &MutPtr<QWidget>) -> MutPtr<QWidget> {
-        unsafe {
-            let mut main = QWidget::new_0a();
-            let main_ptr = main.as_mut_ptr();
-            let mut parent_ptr = parent.layout();
-            assert!(!parent_ptr.is_null());
-            parent_ptr.add_widget(main.into_ptr());
-            main_ptr
-        }
-    }
-}
-
-unsafe impl NewWidget<QWidget, QFrame> for QFrame {
-    fn create(parent: &MutPtr<QWidget>) -> MutPtr<QFrame> {
-        unsafe {
-            let mut main = QFrame::new_0a();
-            let main_ptr = main.as_mut_ptr();
-            let mut parent_ptr = parent.layout();
-            assert!(!parent_ptr.is_null());
-            parent_ptr.add_widget(main.into_ptr());
-            main_ptr
-        }
-    }
-}
-
-/// Choose the type of layout that you want to create
-/// in the AddLayout trait implementation
-#[allow(dead_code)]
-pub enum LayoutType {
-    VBoxLayout,
-    HBoxLayout,
-}
-
-/// Trait provides a function to add a layout to
-pub unsafe trait AddLayout<R> {
-    type Layout;
-    fn add_layout(&mut self, layout: Self::Layout) -> MutPtr<R>;
-}
-
-fn add_layout_to_widget(widget: &mut MutPtr<QWidget>, layout: LayoutType) {
-    unsafe {
-        match layout {
-            LayoutType::VBoxLayout => {
-                let mut layout = QVBoxLayout::new_0a();
-                layout.set_margin(0);
-                layout.set_contents_margins_4a(0, 0, 0, 0);
-                layout.set_spacing(0);
-                widget.set_layout(layout.into_ptr());
-            }
-            LayoutType::HBoxLayout => {
-                let mut layout = QHBoxLayout::new_0a();
-                layout.set_margin(0);
-                layout.set_contents_margins_4a(0, 0, 0, 0);
-                layout.set_spacing(0);
-                widget.set_layout(layout.into_ptr());
-            }
-        }
-    }
-
-    unsafe impl AddLayout<QWidget> for MutPtr<QWidget> {
-        type Layout = LayoutType;
-
-        fn add_layout(&mut self, layout: LayoutType) -> MutPtr<QWidget> {
-            unsafe {
-                add_layout_to_widget(self, layout);
-                self.as_mut_ref().unwrap().as_mut_ptr()
-            }
-        }
-    }
-}
-
-unsafe impl AddLayout<QFrame> for MutPtr<QFrame> {
-    type Layout = LayoutType;
-
-    fn add_layout(&mut self, layout: LayoutType) -> MutPtr<QFrame> {
-        unsafe {
-            let mut qw: MutPtr<QWidget> = self.static_upcast_mut();
-            add_layout_to_widget(&mut qw, layout);
-            self.as_mut_ref().unwrap().as_mut_ptr()
-        }
-    }
-}
-
-//
-// ITEMLIST TOOLBAR
-//
-/// A struct holding pointers to the QToolbar instance,
-/// along with the action group, all of the actions for the
-/// buttons on the toolbar, as well as any internal slots
-pub struct ItemListModeToolbar {
-    pub toolbar: MutPtr<QToolBar>,
-    pub action_group: MutPtr<QActionGroup>,
-    pub add_mode_action: MutPtr<QAction>,
-    pub find_mode_action: MutPtr<QAction>,
-    _mode_icon: CppBox<QIcon>,
-}
-
-impl ItemListModeToolbar {
-    /// New up an ItemListModeToolbar, and regiter it with it
-    /// parent's layout, given it's parent widget.
-    ///
-    /// # Argument
-    /// * `parent` - MutPtr wrapped QWidget
-    ///
-    /// # Returns
-    /// * Instance of ItemListModelToolbar
-    pub fn new(parent: &mut MutPtr<QWidget>) -> Self {
-        unsafe {
-            let mut toolbar = Self::create_toolbar("WithPackage Toolbar");
-            let mut action_group = QActionGroup::new(toolbar.as_mut_ptr());
-            let action_group_ptr = action_group.as_mut_ptr();
-            // add spacer widget
-            let spacer = Self::create_spacer();
-            let mut mode_icon = QIcon::new();
-            let size = QSize::new_2a(24, 24);
-            mode_icon.add_file_4a(
-                &qs(":images/radio_btn.svg"),
-                &size,
-                Mode::Normal,
-                State::Off,
-            );
-            mode_icon.add_file_4a(
-                &qs(":images/radio_btn_sel.svg"),
-                &size,
-                Mode::Normal,
-                State::On,
-            );
-
-            // ADD
-            let (add_mode_action, _add_btn) = Self::create_mode_action(
-                "Add",
-                action_group_ptr,
-                &mut toolbar.as_mut_ptr(),
-                false,
-                Some(mode_icon.as_ref()),
-            );
-
-            // Find
-            let (find_mode_action, _find_button_ref) = Self::create_mode_action(
-                "Find",
-                action_group_ptr,
-                &mut toolbar.as_mut_ptr(),
-                false,
-                Some(mode_icon.as_ref()),
-            );
-
-            // add in spacer
-            toolbar.add_widget(spacer.into_ptr());
-
-            let toolbar_ptr = toolbar.as_mut_ptr();
-            parent.layout().add_widget(toolbar.into_ptr());
-
-            let tb = Self {
-                toolbar: toolbar_ptr,
-                action_group: action_group.into_ptr(),
-                find_mode_action: find_mode_action.into_ptr(),
-                add_mode_action: add_mode_action.into_ptr(),
-                _mode_icon: mode_icon,
-            };
-
-            tb
-        }
-    }
-
-    #[allow(dead_code)]
-    /// Determine if the find mode is active
-    ///
-    /// # Arguments
-    /// * None
-    ///
-    /// # Returns
-    /// * bool indicating whether or not the find mode is active
-    pub fn is_find_active(&self) -> bool {
-        unsafe { self.find_mode_action.is_checked() }
-    }
-
-    #[allow(dead_code)]
-    /// Determine whether the add mode is active
-    ///
-    /// # Arguments
-    /// * None
-    ///
-    /// # Returns
-    /// * bool indicating whether or not the add mode is active
-    pub fn is_add_active(&self) -> bool {
-        unsafe { self.add_mode_action.is_checked() }
-    }
-
-    // Create and configure the QToolBar internal instance, provided a name
-    //
-    // # Arguments
-    // * `name` - The proposed name of the new toolbar
-    //
-    // # Returns
-    // * CppBoxed QToolBar instance
-    unsafe fn create_toolbar(name: &str) -> CppBox<QToolBar> {
-        let mut toolbar = QToolBar::from_q_string(&qs(name));
-        toolbar.set_floatable(false);
-        toolbar.set_movable(false);
-        toolbar.set_object_name(&qs("WithsToolBar"));
-        toolbar
-    }
-
-    // Create a widget that serves as a spacer for the toolbar.
-    //
-    // # Arguments
-    // * None
-    //
-    // # Returns
-    // * CppBoxed QWidget
-    unsafe fn create_spacer() -> CppBox<QWidget> {
-        let mut spacer = QWidget::new_0a();
-        let sp = QSizePolicy::new_2a(Policy::Expanding, Policy::Fixed);
-        spacer.set_size_policy_1a(sp.as_ref());
-        spacer
-    }
-
-    #[allow(dead_code)]
-    // Given a name, and the host toolbar, create and return an action.
-    //
-    // # Arguments
-    // * `name` - The name of the action
-    // * `toolbar` A mutable pointer to the QToolBar instance which will
-    // host the action as a QToolButton
-    //
-    // # Returns tuple of
-    // * New action,
-    // * toolbutton that hosts the action on the toolbar
-    unsafe fn create_action(
-        name: &str,
-        toolbar: &mut MutPtr<QToolBar>,
-    ) -> (MutPtr<QAction>, MutPtr<QToolButton>) {
-        let mode_action = toolbar.add_action_1a(&qs(name));
-        let mut button: MutPtr<QToolButton> =
-            toolbar.widget_for_action(mode_action).dynamic_cast_mut();
-        button.set_object_name(&qs("WithsToolbarButton"));
-
-        (mode_action, button)
-    }
-
-    #[allow(dead_code)]
-    // Create a grouped action given a name, the group, toolbar, and an
-    // indication of whether the action starts out checked. There should
-    // be only one checked action per group.
-    //
-    // # Arguments
-    // * `name` - The name of the action to be created
-    // * `action_grp_ptr` - A pointer to the QActionGroup
-    // * `toolbar` - A mutable reference to the MutPtr wrapped QToolbar instance
-    // we wish to attach our action to
-    // * `checked` - an indication of whether the action should be in the checked state
-    //
-    // # Returns Tuple of
-    // * CppBoxed QAction instance created
-    // * MutPtr wrapped QToolButton that hosts the action on the toolbar
-    unsafe fn create_mode_action(
-        name: &str,
-        action_grp_ptr: MutPtr<QActionGroup>,
-        toolbar: &mut MutPtr<QToolBar>,
-        checked: bool,
-        icon: Option<QRef<QIcon>>,
-    ) -> (CppBox<QAction>, MutPtr<QToolButton>) {
-        let mut mode_action = if let Some(icon) = icon {
-            QAction::from_q_icon_q_string_q_object(icon, &qs(name), action_grp_ptr)
-        } else {
-            QAction::from_q_string_q_object(&qs(name), action_grp_ptr)
-        };
-        mode_action.set_checkable(true);
-        mode_action.set_checked(checked);
-
-        toolbar.add_action(mode_action.as_mut_ptr());
-
-        let mut button: MutPtr<QToolButton> = toolbar
-            .widget_for_action(mode_action.as_mut_ptr())
-            .dynamic_cast_mut();
-
-        button.set_object_name(&qs("WithsToolbarModeButton"));
-        button.set_tool_button_style(ToolButtonStyle::ToolButtonTextBesideIcon);
-
-        (mode_action, button)
-    }
 }
 
 //
@@ -700,6 +400,7 @@ impl<'l> ItemList<'l> {
     }
 
     unsafe fn _select_item(item: QRef<QModelIndex>, view: &MutPtr<QListView>) {
+        view.selection_model().clear();
         view.selection_model()
             .set_current_index(item, SelectionFlag::SelectCurrent.into());
     }
