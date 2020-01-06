@@ -98,6 +98,7 @@ pub struct ItemList<'l> {
     pub model: CppBox<QStandardItemModel>,
     pub view: MutPtr<QListView>,
     pub items: Rc<RefCell<ListItems>>,
+    pub save_button: MutPtr<QPushButton>,
     pub enter_shortcut: MutPtr<QShortcut>,
     pub delete_shortcut: MutPtr<QShortcut>,
     pub cut_shortcut: MutPtr<QShortcut>,
@@ -134,7 +135,8 @@ impl<'l> ItemList<'l> {
             let key_seq = QKeySequence::from_int(Key::KeyReturn.to_int());
             let enter_shortcut = QShortcut::new_2a(key_seq.as_ref(), main_ptr);
             //buttons
-            let _save_button = Self::setup_button("Save", &mut main_ptr.layout());
+            let save_button = Self::setup_button("Save", &mut main_ptr.layout());
+
             // shortcuts
             let key_seq = QKeySequence::from_int(Key::KeyBackspace.to_int());
             let delete_shortcut = QShortcut::new_2a(key_seq.as_ref(), main_ptr);
@@ -199,6 +201,7 @@ impl<'l> ItemList<'l> {
                 add_combobox: cbox,
                 view: listview_ptr,
                 items: listitems,
+                save_button,
                 enter_shortcut: enter_shortcut.into_ptr(),
                 delete_shortcut: delete_shortcut.into_ptr(),
                 cut_shortcut: cut_shortcut.into_ptr(),
