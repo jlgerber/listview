@@ -49,6 +49,10 @@ impl ListItems {
         unsafe {
             let mut rval = Vec::with_capacity(self.items.len());
             for item in &self.items {
+                if item.is_null() {
+                    log::error!("item ptr is null. skipping");
+                    continue;
+                }
                 rval.push(item.text().to_std_string());
             }
             rval

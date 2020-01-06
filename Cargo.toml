@@ -1,6 +1,6 @@
 [package]
 name = "listitem"
-version = "0.8.0"
+version = "0.8.5"
 authors = ["jgerber <jlgerber@gmail.com>"]
 edition = "2018"
 
