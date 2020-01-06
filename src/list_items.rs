@@ -48,8 +48,8 @@ impl ListItems {
     pub fn items(&self) -> Vec<String> {
         unsafe {
             let mut rval = Vec::with_capacity(self.items.len());
-            for item in self.items {
-                rval.push(item.to_std_string());
+            for item in &self.items {
+                rval.push(item.text().to_std_string());
             }
             rval
         }

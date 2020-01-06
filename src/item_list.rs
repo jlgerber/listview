@@ -353,9 +353,10 @@ impl<'l> ItemList<'l> {
         }
     }
 
-    pub fn items(&self) {
-        self.items.items()
+    pub fn items(&self) -> Vec<String> {
+        self.items.borrow().items()
     }
+
     #[allow(dead_code)]
     /// Set comboboc items, replacing any extant items
     ///
