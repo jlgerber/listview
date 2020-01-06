@@ -268,15 +268,15 @@ impl<'l> ItemList<'l> {
     ///
     /// # Returns
     /// None
-    pub fn set_items<'a: 'l, I>(&mut self, items: Vec<I>)
+    pub fn set_items<I>(&mut self, items: Vec<I>)
     where
-        I: Into<&'a str>,
+        I: AsRef<str>,
     {
         unsafe {
             self.items.borrow_mut().clear();
             self.model.clear();
             for item in items {
-                self.add_item(item.into());
+                self.add_item(item.as_ref());
             }
         }
     }
@@ -285,11 +285,11 @@ impl<'l> ItemList<'l> {
     ///
     /// # Arguments
     /// * The item to be added, as a &str or String
-    pub fn add_item<'a, I>(&mut self, item: I)
+    pub fn add_item<I>(&mut self, item: I)
     where
-        I: Into<&'a str>,
+        I: AsRef<str>,
     {
-        self.items.borrow_mut().add_item_to(item.into()); //, &mut self.model.as_mut_ptr());
+        self.items.borrow_mut().add_item_to(item.as_ref()); //, &mut self.model.as_mut_ptr());
     }
 
     /// add an item to the pulldown
