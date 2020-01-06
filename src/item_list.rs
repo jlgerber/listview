@@ -364,13 +364,13 @@ impl<'l> ItemList<'l> {
     /// * `items` - Vector of items that may be converted to a &str vie Into<&'cstr>
     pub fn set_cb_items<'c, I>(&mut self, items: Vec<I>)
     where
-        I: Into<&'c str>,
+        I: AsRef<str>,
     {
         unsafe {
             self.remove_cb_items();
             self.add_combobox.add_item_q_string(&qs(""));
             for item in items {
-                self.add_combobox.add_item_q_string(&qs(item.into()));
+                self.add_combobox.add_item_q_string(&qs(item.as_ref()));
             }
         }
     }
