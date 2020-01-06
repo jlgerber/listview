@@ -391,6 +391,13 @@ impl<'l> ItemList<'l> {
         }
     }
 
+    /// Change the max number of items displayed in the combobox's dropdown
+    /// list
+    pub fn set_cb_max_visible_items(&mut self, max: i32) {
+        unsafe {
+            self.add_combobox.set_max_visible_items(max);
+        }
+    }
     /// Given a path as a &str to a stylesheet, apply it to the components.
     ///
     /// # Arguments

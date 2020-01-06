@@ -102,6 +102,7 @@ fn main() {
         add_shortcut.activated().connect(&add_slot);
 
         item_list.borrow_mut().set_add_mode();
+        item_list.borrow_mut().set_cb_max_visible_items(50);
         let mut print_button = QPushButton::from_q_string(&qs("pushme"));
         let mut bp = print_button.as_mut_ref();
         main_ref.layout().add_widget(print_button.into_ptr());
