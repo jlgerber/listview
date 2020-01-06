@@ -5,7 +5,7 @@ use listitem::{
 };
 use qt_core::{QResource, Slot};
 use qt_gui::QKeySequence;
-use qt_widgets::{QApplication, QShortcut, QWidget};
+use qt_widgets::{QApplication, QPushButton, QShortcut, QWidget};
 use std::cell::RefCell;
 use std::rc::Rc;
 
@@ -15,13 +15,15 @@ fn main() {
         let mut main = QWidget::new_0a();
         let mut main_ref = main.as_mut_ptr();
         let main_layout = create_vlayout();
-
         main.set_layout(main_layout.into_ptr());
 
-        let item_list = Rc::new(RefCell::new(ItemList::new(&mut main_ref)));
+        let mut item_list = Rc::new(RefCell::new(ItemList::new(&mut main_ref)));
 
         let wl_c1 = item_list.clone();
         let wl_c2 = item_list.clone();
+        let wl_c3 = item_list.clone();
+        let mut wl_c4 = item_list.clone();
+
         item_list
             .borrow_mut()
             .set_stylesheet("/Users/jgerber/bin/withlist.qss");
@@ -100,7 +102,25 @@ fn main() {
         add_shortcut.activated().connect(&add_slot);
 
         item_list.borrow_mut().set_add_mode();
+        let mut print_button = QPushButton::from_q_string(&qs("pushme"));
+        let mut bp = print_button.as_mut_ref();
+        main_ref.layout().add_widget(print_button.into_ptr());
 
+        let print_slot: Slot<'static> = Slot::new(move || {
+            for x in wl_c3.borrow().items() {
+                println!("{}", x);
+            }
+        });
+        bp.pressed().connect(&print_slot);
+
+        let mut clear_button = QPushButton::from_q_string(&qs("Clear"));
+        let mut cb = clear_button.as_mut_ref();
+        main_ref.layout().add_widget(clear_button.into_ptr());
+
+        let clear_slot: Slot<'static> = Slot::new(move || {
+            wl_c4.borrow_mut().clear();
+        });
+        cb.pressed().connect(&clear_slot);
         main_ref.show();
 
         QApplication::exec()

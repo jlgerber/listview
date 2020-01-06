@@ -12,6 +12,7 @@ impl ListItems {
     /// New up an empty ListItems instance
     pub fn new(model: MutPtr<QStandardItemModel>) -> Self {
         Self {
+            // we hold onto this for ownership purposes, but we never access
             items: Vec::new(),
             model,
         }
@@ -24,7 +25,10 @@ impl ListItems {
     /// # Returns
     /// None
     pub fn clear(&mut self) {
-        self.items.clear();
+        unsafe {
+            self.model.clear();
+            self.items.clear();
+        }
     }
 
     /// Add an item to self.
@@ -47,8 +51,10 @@ impl ListItems {
     /// Retrieve a vector of Strings for items
     pub fn items(&self) -> Vec<String> {
         unsafe {
-            let mut rval = Vec::with_capacity(self.items.len());
-            for item in &self.items {
+            let sz = self.model.row_count_0a();
+            let mut rval = Vec::with_capacity(sz as usize);
+            for c in 0..sz {
+                let item = self.model.item_1a(c);
                 if item.is_null() {
                     log::error!("item ptr is null. skipping");
                     continue;
