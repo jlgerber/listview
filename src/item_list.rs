@@ -353,6 +353,9 @@ impl<'l> ItemList<'l> {
         }
     }
 
+    pub fn items(&self) {
+        self.items.items()
+    }
     #[allow(dead_code)]
     /// Set comboboc items, replacing any extant items
     ///

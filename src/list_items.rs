@@ -43,4 +43,15 @@ impl ListItems {
             self.items.push(si.into_ptr());
         }
     }
+
+    /// Retrieve a vector of Strings for items
+    pub fn items(&self) -> Vec<String> {
+        unsafe {
+            let mut rval = Vec::with_capacity(self.items.len());
+            for item in self.items {
+                rval.push(item.to_std_string());
+            }
+            rval
+        }
+    }
 }
