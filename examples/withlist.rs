@@ -17,12 +17,12 @@ fn main() {
         let main_layout = create_vlayout();
         main.set_layout(main_layout.into_ptr());
 
-        let mut item_list = Rc::new(RefCell::new(ItemList::new(main_ref)));
+        let item_list = Rc::new(RefCell::new(ItemList::new(main_ref)));
 
         let wl_c1 = item_list.clone();
         let wl_c2 = item_list.clone();
         let wl_c3 = item_list.clone();
-        let mut wl_c4 = item_list.clone();
+        let wl_c4 = item_list.clone();
 
         item_list
             .borrow_mut()
@@ -104,7 +104,7 @@ fn main() {
         item_list.borrow_mut().set_add_mode();
         item_list.borrow_mut().set_cb_max_visible_items(50);
         let mut print_button = QPushButton::from_q_string(&qs("pushme"));
-        let mut bp = print_button.as_mut_ref();
+        let bp = print_button.as_mut_ref();
         main_ref.layout().add_widget(print_button.into_ptr());
 
         let print_slot: Slot<'static> = Slot::new(move || {
@@ -115,7 +115,7 @@ fn main() {
         bp.pressed().connect(&print_slot);
 
         let mut clear_button = QPushButton::from_q_string(&qs("Clear"));
-        let mut cb = clear_button.as_mut_ref();
+        let cb = clear_button.as_mut_ref();
         main_ref.layout().add_widget(clear_button.into_ptr());
 
         let clear_slot: Slot<'static> = Slot::new(move || {
