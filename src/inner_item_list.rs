@@ -1,6 +1,6 @@
 use super::utility::qs;
 use crate::toolbar::ItemListModeToolbar;
-pub use crate::traits::*;
+use crate::traits::*;
 use crate::utility::load_stylesheet;
 use log;
 use qt_core::{q_item_selection_model::SelectionFlag, MatchFlag, QModelIndex, QString};
@@ -14,7 +14,7 @@ use qt_widgets::{
     QAction, QComboBox, QFrame, QHBoxLayout, QLabel, QLayout, QListView, QPushButton, QToolBar,
     QWidget,
 };
-pub use rustqt_utils::{as_mut_ref, as_ref, enclose, enclose_all};
+//use rustqt_utils::{as_mut_ref, as_ref, enclose, enclose_all};
 
 //
 // ITEMLIST
@@ -24,7 +24,7 @@ pub use rustqt_utils::{as_mut_ref, as_ref, enclose, enclose_all};
 /// It stores the main components that are interesting to
 /// its clients, including the toolbar, the model, the view,
 /// the actual items backing data, and various slots
-pub struct InnerItemList {
+pub(crate) struct InnerItemList {
     main: MutPtr<QWidget>,
     mode_toolbar: ItemListModeToolbar,
     add_label: MutPtr<QLabel>,
@@ -42,7 +42,7 @@ impl InnerItemList {
     ///
     /// # Returns
     /// * An ItemList instance
-    pub fn new(parent: MutPtr<QWidget>) -> InnerItemList {
+    pub(crate) fn new(parent: MutPtr<QWidget>) -> InnerItemList {
         unsafe {
             let parent = parent;
             let mut main_ptr = Self::setup_main_widget(&parent);
@@ -92,33 +92,36 @@ impl InnerItemList {
         }
     }
 
-    pub fn main(&self) -> MutPtr<QWidget> {
+    pub(crate) fn main(&self) -> MutPtr<QWidget> {
         self.main
     }
 
-    pub fn view(&self) -> MutPtr<QListView> {
+    pub(crate) fn view(&self) -> MutPtr<QListView> {
         self.view
     }
 
-    pub fn toolbar(&self) -> MutPtr<QToolBar> {
+    #[allow(dead_code)]
+    pub(crate) fn toolbar(&self) -> MutPtr<QToolBar> {
         self.mode_toolbar.toolbar()
     }
 
-    pub fn add_combobox(&self) -> MutPtr<QComboBox> {
+    pub(crate) fn add_combobox(&self) -> MutPtr<QComboBox> {
         self.add_combobox
     }
 
-    pub fn model(&self) -> MutPtr<QStandardItemModel> {
+    pub(crate) fn model(&self) -> MutPtr<QStandardItemModel> {
         unsafe { self.view.model().dynamic_cast_mut() }
     }
 
-    pub fn add_label(&self) -> MutPtr<QLabel> {
+    pub(crate) fn add_label(&self) -> MutPtr<QLabel> {
         self.add_label
     }
 
-    pub fn save_button(&self) -> MutPtr<QPushButton> {
+    #[allow(dead_code)]
+    pub(crate) fn save_button(&self) -> MutPtr<QPushButton> {
         self.save_button
     }
+
     #[allow(dead_code)]
     /// Determine if the find mode is active
     ///
@@ -127,7 +130,7 @@ impl InnerItemList {
     ///
     /// # Returns
     /// * bool indicating whether or not the find mode is active
-    pub fn is_find_active(&self) -> bool {
+    pub(crate) fn is_find_active(&self) -> bool {
         self.mode_toolbar.is_find_active()
     }
     /// Determine whether the add mode is active
@@ -137,7 +140,8 @@ impl InnerItemList {
     ///
     /// # Returns
     /// * bool indicating whether or not the add mode is active
-    pub fn is_add_active(&self) -> bool {
+    #[allow(dead_code)]
+    pub(crate) fn is_add_active(&self) -> bool {
         self.mode_toolbar.is_add_active()
     }
 
@@ -149,7 +153,7 @@ impl InnerItemList {
     ///
     /// # Returns
     /// None
-    pub fn clear(&self) {
+    pub(crate) fn clear(&self) {
         unsafe {
             let mut model = self.model();
             model.clear();
@@ -165,7 +169,7 @@ impl InnerItemList {
     ///
     /// # Returns
     /// None
-    pub fn set_items<I>(&self, items: Vec<I>)
+    pub(crate) fn set_items<I>(&self, items: Vec<I>)
     where
         I: AsRef<str>,
     {
@@ -184,7 +188,7 @@ impl InnerItemList {
     ///
     /// # Returns
     /// * Noen
-    pub fn add_item_to(&self, item: &str) {
+    pub(crate) fn add_item_to(&self, item: &str) {
         unsafe {
             let mut si = QStandardItem::new();
             si.set_text(&qs(item));
@@ -194,7 +198,7 @@ impl InnerItemList {
     }
 
     /// Retrieve a vector of Strings for items
-    pub fn items(&self) -> Vec<String> {
+    pub(crate) fn items(&self) -> Vec<String> {
         unsafe {
             let sz = self.model.row_count_0a();
             let mut rval = Vec::with_capacity(sz as usize);
@@ -213,7 +217,7 @@ impl InnerItemList {
     ///
     /// # Arguments
     /// * The item to be added, as a &str or String
-    pub fn add_item<I>(&self, item: I)
+    pub(crate) fn add_item<I>(&self, item: I)
     where
         I: AsRef<str>,
     {
@@ -224,7 +228,8 @@ impl InnerItemList {
     ///
     /// # Arguments
     /// * The item to be found, as a &MutPtr<QString>
-    pub fn find_item<'a>(&self, item: QRef<QString>) -> Option<MutPtr<QStandardItem>> {
+    #[allow(dead_code)]
+    pub(crate) fn find_item<'a>(&self, item: QRef<QString>) -> Option<MutPtr<QStandardItem>> {
         Self::_find_item(item, &self.model())
     }
 
@@ -234,8 +239,9 @@ impl InnerItemList {
     /// * `item` - A Ref wrapped QString.
     /// * `select1 - a boolean indicating whether the item should be selected as well as centered
     /// in the view
-    pub fn scroll_to_item<'a>(&self, item: QRef<QString>, select_item: bool) {
-        Self::_scroll_to_item(item, &mut self.view(), &mut self.model(), select_item);
+    #[allow(dead_code)]
+    pub(crate) fn scroll_to_item<'a>(&self, item: QRef<QString>, select_item: bool) -> bool {
+        Self::_scroll_to_item(item, &mut self.view(), &mut self.model(), select_item)
     }
 
     /// Select the provided item given a Ref wrapped QModelIndex
@@ -246,7 +252,7 @@ impl InnerItemList {
     /// # Returns
     /// * None
     #[allow(dead_code)]
-    pub fn select_item(&self, item: QRef<QModelIndex>) {
+    pub(crate) fn select_item(&self, item: QRef<QModelIndex>) {
         unsafe {
             Self::_select_item(item, &self.view);
         }
@@ -260,7 +266,7 @@ impl InnerItemList {
     ///
     /// # Returns
     /// None
-    pub fn delete_sel_items(&mut self) {
+    pub(crate) fn delete_sel_items(&mut self) {
         unsafe {
             let selected = self.view.selection_model().selected_indexes();
             if selected.length() == 0 {
@@ -280,7 +286,7 @@ impl InnerItemList {
     ///
     /// # Returns
     /// * None
-    pub fn set_cb_items<'c, I>(&self, items: Vec<I>)
+    pub(crate) fn set_cb_items<'c, I>(&self, items: Vec<I>)
     where
         I: AsRef<str>,
     {
@@ -300,7 +306,7 @@ impl InnerItemList {
     /// * None
     ///
     /// # Returns None
-    pub fn remove_cb_items(&self) {
+    pub(crate) fn remove_cb_items(&self) {
         unsafe {
             self.add_combobox().clear();
         }
@@ -314,7 +320,7 @@ impl InnerItemList {
     ///
     /// # Returns
     /// * None
-    pub fn set_cb_max_visible_items(&self, max: i32) {
+    pub(crate) fn set_cb_max_visible_items(&self, max: i32) {
         unsafe {
             self.add_combobox().set_max_visible_items(max);
         }
@@ -327,7 +333,7 @@ impl InnerItemList {
     ///
     /// # Returns
     /// * None
-    pub fn set_stylesheet(&self, sheet: &str) {
+    pub(crate) fn set_stylesheet(&self, sheet: &str) {
         load_stylesheet(sheet, self.main);
     }
 
@@ -370,23 +376,23 @@ impl InnerItemList {
             .set_current_index(item, SelectionFlag::SelectCurrent.into());
     }
 
-    pub fn find_mode_action(&self) -> MutPtr<QAction> {
+    pub(crate) fn find_mode_action(&self) -> MutPtr<QAction> {
         self.mode_toolbar.find_mode_action
     }
 
-    pub fn add_mode_action(&self) -> MutPtr<QAction> {
+    pub(crate) fn add_mode_action(&self) -> MutPtr<QAction> {
         self.mode_toolbar.add_mode_action
     }
 
     #[allow(dead_code)]
-    pub fn set_add_mode(&self) {
+    pub(crate) fn set_add_mode(&self) {
         unsafe {
             self.add_mode_action().activate(ActionEvent::Trigger);
         }
     }
 
     #[allow(dead_code)]
-    pub fn set_find_mode(&self) {
+    pub(crate) fn set_find_mode(&self) {
         unsafe {
             self.find_mode_action().activate(ActionEvent::Trigger);
         }
