@@ -1,27 +1,11 @@
-//use super::list_items::ListItems;
 use super::utility::qs;
-//use crate::toolbar::ItemListModeToolbar;
+use crate::inner_item_list::InnerItemList;
 pub use crate::traits::*;
-//use crate::utility::load_stylesheet;
 use log;
 use qt_core::{q_item_selection_model::SelectionFlag, Key, MatchFlag, QModelIndex, QString, Slot};
 use qt_gui::{q_key_sequence::StandardKey, QKeySequence, QStandardItem, QStandardItemModel};
-//use qt_widgets::cpp_core::Ref as QRef;
-use crate::inner_item_list::InnerItemList;
-use qt_widgets::{
-    cpp_core::MutPtr,
-    cpp_core::Ref as QRef,
-    // q_abstract_item_view::DragDropMode,
-    // q_abstract_item_view::SelectionMode,
-    // q_action::ActionEvent,
-    //QComboBox, QFrame, QHBoxLayout, QLabel, QLayout,
-    QListView,
-    //QPushButton,
-    QShortcut,
-    QWidget,
-};
+use qt_widgets::{cpp_core::MutPtr, cpp_core::Ref as QRef, QListView, QShortcut, QWidget};
 pub use rustqt_utils::{as_mut_ref, as_ref, enclose, enclose_all};
-//use std::cell::RefCell;
 use std::rc::Rc;
 
 //
@@ -33,14 +17,14 @@ use std::rc::Rc;
 /// its clients, including the toolbar, the model, the view,
 /// the actual items backing data, and various slots
 pub struct ItemList<'l> {
-    pub inner: Rc<InnerItemList>,
-    pub enter_shortcut: MutPtr<QShortcut>,
-    pub delete_shortcut: MutPtr<QShortcut>,
-    pub cut_shortcut: MutPtr<QShortcut>,
-    pub rm: Slot<'l>,
-    pub find_mode: Slot<'l>,
-    pub add_mode: Slot<'l>,
-    pub enter_sc: Slot<'l>,
+    inner: Rc<InnerItemList>,
+    enter_shortcut: MutPtr<QShortcut>,
+    delete_shortcut: MutPtr<QShortcut>,
+    cut_shortcut: MutPtr<QShortcut>,
+    rm: Slot<'l>,
+    find_mode: Slot<'l>,
+    add_mode: Slot<'l>,
+    enter_sc: Slot<'l>,
 }
 
 impl<'l> ItemList<'l> {
@@ -78,7 +62,6 @@ impl<'l> ItemList<'l> {
                 indexes.iter().rev().for_each(|c| {inner_view.model().remove_row_1a(*c); });
             }});
 
-            // let mode_toolbar = inner.toolbar();
             let cbox_ptr = inner.add_combobox();
             let listview_ptr = inner.view();
             let model_ptr = inner.model();
@@ -163,14 +146,14 @@ impl<'l> ItemList<'l> {
         }
     }
 
-    /// Retrieve an RC wrapped InnerItemList instance
-    ///
-    /// # Arguments
-    /// * None
-    ///
-    /// # Returns
-    /// * Rc of the InnerItemList instance
-    pub fn inner(&self) -> Rc<InnerItemList> {
+    // Retrieve an RC wrapped InnerItemList instance
+    //
+    // # Arguments
+    // * None
+    //
+    // # Returns
+    // * Rc of the InnerItemList instance
+    fn inner(&self) -> Rc<InnerItemList> {
         self.inner.clone()
     }
 
