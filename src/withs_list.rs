@@ -145,19 +145,17 @@ impl<'l> WithsList<'l> {
                 add_shortcut: add_shortcut.into_ptr(),
                 rm: rm_slot,
 
-                find_mode: Slot::new(
-                    as_mut_ref! { (cblabel) enclose_all! { () ( mut cbox_ptr) move || {
-                        cbox_ptr.set_enabled(true);
-                        if let Some(mut cblabel) = cblabel {cblabel.set_text(&qs("Find Item"))};
-                    }}},
-                ),
+                find_mode: Slot::new(as_mut_ref! { (cblabel) enclose! { (cbox_ptr) move || {
+                    let mut cbox_ptr = cbox_ptr;
+                    cbox_ptr.set_enabled(true);
+                    if let Some(mut cblabel) = cblabel {cblabel.set_text(&qs("Find Item"))};
+                }}}),
 
-                add_mode: Slot::new(
-                    as_mut_ref! {(cblabel) enclose_all! { () ( mut cbox_ptr) move || {
-                        cbox_ptr.set_enabled(true);
-                        if let Some(mut cblabel) = cblabel {cblabel.set_text(&qs("Add Item"))};
-                    }}},
-                ),
+                add_mode: Slot::new(as_mut_ref! {(cblabel) enclose! { ( cbox_ptr) move || {
+                    let mut cbox_ptr = cbox_ptr;
+                    cbox_ptr.set_enabled(true);
+                    if let Some(mut cblabel) = cblabel {cblabel.set_text(&qs("Add Item"))};
+                }}}),
 
                 enter_sc,
                 find_shortcut_slot,
