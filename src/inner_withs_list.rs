@@ -19,12 +19,12 @@ use qt_widgets::{
 //
 // ITEMLIST
 //
-/// The ItemList provides a litview with a toolbar allowing you
+/// The WithsList provides a litview with a toolbar allowing you
 /// to switch between reordering, deleting, and adding members.
 /// It stores the main components that are interesting to
 /// its clients, including the toolbar, the model, the view,
 /// the actual items backing data, and various slots
-pub(crate) struct InnerItemList {
+pub(crate) struct InnerWithsList {
     main: MutPtr<QWidget>,
     mode_toolbar: ItemListModeToolbar,
     add_label: MutPtr<QLabel>,
@@ -34,15 +34,15 @@ pub(crate) struct InnerItemList {
     save_button: MutPtr<QPushButton>,
 }
 
-impl InnerItemList {
-    /// New up an ItemList given a parent
+impl InnerWithsList {
+    /// New up an WithsList given a parent
     ///
     /// # Arguments
     /// * `parent` - MutPtr to the parent QWidget
     ///
     /// # Returns
-    /// * An ItemList instance
-    pub(crate) fn new(parent: MutPtr<QWidget>) -> InnerItemList {
+    /// * An WithsList instance
+    pub(crate) fn new(parent: MutPtr<QWidget>) -> InnerWithsList {
         unsafe {
             let parent = parent;
             let mut main_ptr = Self::setup_main_widget(&parent);

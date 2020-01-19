@@ -1,7 +1,6 @@
-use listitem::{
-    //withlist::WithList,
-    item_list::ItemList,
+use pbgui_withs::{
     utility::{create_vlayout, qs},
+    WithsList,
 };
 use qt_core::{QResource, Slot};
 use qt_gui::QKeySequence;
@@ -17,14 +16,14 @@ fn main() {
         let main_layout = create_vlayout();
         main.set_layout(main_layout.into_ptr());
 
-        let item_list = Rc::new(RefCell::new(ItemList::new(main_ref)));
+        let withs_list = Rc::new(RefCell::new(WithsList::new(main_ref)));
 
-        let wl_c1 = item_list.clone();
-        let wl_c2 = item_list.clone();
-        let wl_c3 = item_list.clone();
-        let wl_c4 = item_list.clone();
+        let wl_c1 = withs_list.clone();
+        let wl_c2 = withs_list.clone();
+        let wl_c3 = withs_list.clone();
+        let wl_c4 = withs_list.clone();
 
-        item_list
+        withs_list
             .borrow_mut()
             .set_stylesheet("/Users/jgerber/bin/withlist.qss");
 
@@ -37,12 +36,12 @@ fn main() {
         });
 
         let key_seq = QKeySequence::from_q_string(&qs("Ctrl+f"));
-        let find_shortcut = QShortcut::new_2a(key_seq.as_ref(), item_list.borrow().main());
+        let find_shortcut = QShortcut::new_2a(key_seq.as_ref(), withs_list.borrow().main());
 
         let key_seq = QKeySequence::from_q_string(&qs("Ctrl+a"));
-        let add_shortcut = QShortcut::new_2a(key_seq.as_ref(), item_list.borrow().main());
+        let add_shortcut = QShortcut::new_2a(key_seq.as_ref(), withs_list.borrow().main());
 
-        item_list.borrow_mut().set_cb_items(vec![
+        withs_list.borrow_mut().set_cb_items(vec![
             "amtools",
             "animcomp",
             "animpublish",
@@ -101,8 +100,8 @@ fn main() {
         find_shortcut.activated().connect(&find_slot);
         add_shortcut.activated().connect(&add_slot);
 
-        item_list.borrow_mut().set_add_mode();
-        item_list.borrow_mut().set_cb_max_visible_items(50);
+        withs_list.borrow_mut().set_add_mode();
+        withs_list.borrow_mut().set_cb_max_visible_items(50);
         let mut print_button = QPushButton::from_q_string(&qs("pushme"));
         let bp = print_button.as_mut_ref();
         main_ref.layout().add_widget(print_button.into_ptr());

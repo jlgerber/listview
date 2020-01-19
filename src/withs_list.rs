@@ -1,5 +1,5 @@
 use super::utility::qs;
-use crate::inner_item_list::InnerItemList;
+use crate::inner_withs_list::InnerWithsList;
 pub use crate::traits::*;
 use log;
 use qt_core::{Key, QModelIndex, QString, Slot};
@@ -8,13 +8,13 @@ use qt_widgets::{cpp_core::MutPtr, cpp_core::Ref as QRef, QListView, QShortcut, 
 pub use rustqt_utils::{as_mut_ref, as_ref, enclose, enclose_all};
 use std::rc::Rc;
 
-/// The ItemList provides a listview with a toolbar allowing you
+/// The WithsList provides a listview with a toolbar allowing you
 /// to switch between adding and finding members.
 /// It stores the main components that are interesting to
 /// its clients, including the toolbar, the model, the view,
 /// the actual items backing data, and various slots
-pub struct ItemList<'l> {
-    inner: Rc<InnerItemList>,
+pub struct WithsList<'l> {
+    inner: Rc<InnerWithsList>,
     enter_shortcut: MutPtr<QShortcut>,
     delete_shortcut: MutPtr<QShortcut>,
     cut_shortcut: MutPtr<QShortcut>,
@@ -24,17 +24,17 @@ pub struct ItemList<'l> {
     enter_sc: Slot<'l>,
 }
 
-impl<'l> ItemList<'l> {
-    /// New up an ItemList given a parent
+impl<'l> WithsList<'l> {
+    /// New up an WithsList given a parent
     ///
     /// # Arguments
     /// * `parent` - MutPtr to the parent QWidget
     ///
     /// # Returns
-    /// * An ItemList instance
-    pub fn new(parent: MutPtr<QWidget>) -> ItemList<'l> {
+    /// * An WithsList instance
+    pub fn new(parent: MutPtr<QWidget>) -> WithsList<'l> {
         unsafe {
-            let inner = Rc::new(InnerItemList::new(parent));
+            let inner = Rc::new(InnerWithsList::new(parent));
 
             // shortcuts
             let enter_key_seq = QKeySequence::from_int(Key::KeyReturn.to_int());
@@ -147,7 +147,7 @@ impl<'l> ItemList<'l> {
         }
     }
 
-    // Retrieve an RC wrapped InnerItemList instance. This used to be public
+    // Retrieve an RC wrapped InnerWithsList instance. This used to be public
     // but it really has no place as part of the public api. All use cases
     // should be covered by explicit methods.
     //
@@ -155,8 +155,8 @@ impl<'l> ItemList<'l> {
     // * None
     //
     // # Returns
-    // * Rc of the InnerItemList instance
-    fn inner(&self) -> Rc<InnerItemList> {
+    // * Rc of the InnerWithsList instance
+    fn inner(&self) -> Rc<InnerWithsList> {
         self.inner.clone()
     }
 
