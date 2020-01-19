@@ -189,7 +189,7 @@ impl InnerItemList {
             let mut si = QStandardItem::new();
             si.set_text(&qs(item));
             si.set_drop_enabled(false);
-            self.model().append_row_q_standard_item(si.as_mut_ptr());
+            self.model().append_row_q_standard_item(si.into_ptr());
         }
     }
 
