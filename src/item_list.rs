@@ -11,8 +11,8 @@ use std::rc::Rc;
 //
 // ITEMLIST
 //
-/// The ItemList provides a litview with a toolbar allowing you
-/// to switch between reordering, deleting, and adding members.
+/// The ItemList provides a listview with a toolbar allowing you
+/// to switch between adding and finding members.
 /// It stores the main components that are interesting to
 /// its clients, including the toolbar, the model, the view,
 /// the actual items backing data, and various slots
