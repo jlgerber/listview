@@ -15,73 +15,9 @@ use qt_widgets::{
     q_action::ActionEvent,
     QComboBox, QFrame, QHBoxLayout, QLabel, QLayout, QListView, QPushButton, QShortcut, QWidget,
 };
+pub use rustqt_utils::{as_mut_ref, as_ref, enclose, enclose_all};
 use std::cell::RefCell;
 use std::rc::Rc;
-
-#[allow(unused_macros)]
-/// Macro to clone items before moving them into a closure.
-/// Used to handle reference counted items without cluttering
-/// the main code with a bunch of clone calls.
-/// For closures, it looks like this:
-/// ```ignore
-/// enclose!{ (<CLONEME>,) move |<VARS>| {}}
-///```
-/// For Example
-/// ```ignore
-/// Slot::new(enclose!{(layout, toolbar) move || { ... do stuff }});
-/// ```
-macro_rules! enclose {
-    ( ($(  $x:ident ),*) $y:expr ) => {
-        {
-            $(let $x = $x.clone();)*
-            $y
-        }
-    };
-}
-
-#[allow(unused_macros)]
-macro_rules! take_ref {
-    ( ($(  $x:ident ),*) $y:expr ) => {
-        {
-            $(let $x = $x.as_ref();)*
-            $y
-        }
-    };
-}
-
-#[allow(unused_macros)]
-macro_rules! take_mut_ref {
-    ( ($(  $x:ident ),*) $y:expr ) => {
-        {
-            #[allow(unused_mut)]
-            $(let mut $x = $x.as_mut_ref();)*
-            $y
-        }
-    };
-}
-
-#[allow(unused_macros)]
-/// Works like enclose but provides for both non and mutable
-/// clones.
-///
-/// # Example
-/// ```ignore
-/// { enclose_all! { (<ARG>) (mut <ARG>,) move |<ARG>| {} }}
-/// ```
-/// EG
-/// ```ignore
-/// Slot::new(enclose_all!{(layout) (mut toolbar, mut button)} move || {...do stuff});
-/// ```
-macro_rules! enclose_all {
-    ( ($(  $x:ident ),*) ($( mut $mx:ident ),*) $y:expr ) => {
-        {
-            $(let $x = $x.clone();)*
-            #[allow(unused_mut)]
-            $(let mut $mx = $mx.clone();)*
-            $y
-        }
-    };
-}
 
 //
 // ITEMLIST
@@ -208,14 +144,14 @@ impl<'l> ItemList<'l> {
                 rm: rm_slot,
 
                 find_mode: Slot::new(
-                    take_mut_ref! { (cblabel) enclose_all! { () ( mut cbox_ptr) move || {
+                    as_mut_ref! { (cblabel) enclose_all! { () ( mut cbox_ptr) move || {
                         cbox_ptr.set_enabled(true);
                         if let Some(mut cblabel) = cblabel {cblabel.set_text(&qs("Find Item"))};
                     }}},
                 ),
 
                 add_mode: Slot::new(
-                    take_mut_ref! {(cblabel) enclose_all! { () ( mut cbox_ptr) move || {
+                    as_mut_ref! {(cblabel) enclose_all! { () ( mut cbox_ptr) move || {
                         cbox_ptr.set_enabled(true);
                         if let Some(mut cblabel) = cblabel {cblabel.set_text(&qs("Add Item"))};
 
@@ -356,6 +292,15 @@ impl<'l> ItemList<'l> {
         }
     }
 
+    /// Get the items as a vector of Strings.
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * Vector of String
+    // this should return an iterator at some point. Maybe a good time to try out
+    // the crate which provides yield on stable
     pub fn items(&self) -> Vec<String> {
         self.items.borrow().items()
     }
@@ -364,7 +309,10 @@ impl<'l> ItemList<'l> {
     /// Set comboboc items, replacing any extant items
     ///
     /// # Arguments
-    /// * `items` - Vector of items that may be converted to a &str vie Into<&'cstr>
+    /// * `items` - Vector of items
+    ///
+    /// # Returns
+    /// * None
     pub fn set_cb_items<'c, I>(&mut self, items: Vec<I>)
     where
         I: AsRef<str>,
@@ -393,11 +341,18 @@ impl<'l> ItemList<'l> {
 
     /// Change the max number of items displayed in the combobox's dropdown
     /// list
+    ///
+    /// # Arguments
+    /// * `max` - Maximum number of visible items in the comobobox's dropdown
+    ///
+    /// # Returns
+    /// * None
     pub fn set_cb_max_visible_items(&mut self, max: i32) {
         unsafe {
             self.add_combobox.set_max_visible_items(max);
         }
     }
+
     /// Given a path as a &str to a stylesheet, apply it to the components.
     ///
     /// # Arguments

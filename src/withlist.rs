@@ -9,47 +9,10 @@ use qt_widgets::{
     cpp_core::{CppBox, MutPtr, MutRef},
     QLayout, QPushButton, QShortcut, QVBoxLayout, QWidget,
 };
+use rustqt_utils::{as_mut_ref, as_ref, enclose, enclose_all, enclose_mut};
 use std::cell::RefCell;
 use std::rc::Rc;
 
-// makes it simpler to deal with the need to clone. Saw this here:
-// https://github.com/rust-webplatwith_list/rust-todomvc/blob/master/src/main.rs#L142
-#[allow(unused_macros)]
-macro_rules! enclose {
-    ( ($(  $x:ident ),*) $y:expr ) => {
-        {
-            $(let $x = $x.clone();)*
-            $y
-        }
-    };
-}
-
-#[allow(unused_macros)]
-macro_rules! enclose_mut {
-    ( ($( mut $x:ident ),*) $y:expr ) => {
-        {
-            $(let mut $x = $x.clone();)*
-            $y
-        }
-    };
-}
-
-/// clone both immutable and mutable vars. Useful for
-/// qt, which has a lot more mutable
-/// use like so:
-/// ```ignore
-/// Slot::,new(enclose_all!{ (foo, bar) (mut bla) move || {}}),
-/// ```
-#[allow(unused_macros)]
-macro_rules! enclose_all {
-    ( ($(  $x:ident ),*) ($( mut $mx:ident ),*) $y:expr ) => {
-        {
-            $(let $x = $x.clone();)*
-            $(let mut $mx = $mx.clone();)*
-            $y
-        }
-    };
-}
 // Decided that the following is not needed. My initial intention was to allow for
 // both owned and non-owned alternative for the struct. However, upon reflection, it seems
 // more reasonable to simply pass in an owning QWidget.
