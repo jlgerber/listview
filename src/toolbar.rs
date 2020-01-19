@@ -93,6 +93,9 @@ impl ItemListModeToolbar {
         }
     }
 
+    pub fn toolbar(&self) -> MutPtr<QToolBar> {
+        self.toolbar
+    }
     #[allow(dead_code)]
     /// Determine if the find mode is active
     ///

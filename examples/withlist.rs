@@ -17,7 +17,7 @@ fn main() {
         let main_layout = create_vlayout();
         main.set_layout(main_layout.into_ptr());
 
-        let mut item_list = Rc::new(RefCell::new(ItemList::new(&mut main_ref)));
+        let mut item_list = Rc::new(RefCell::new(ItemList::new(main_ref)));
 
         let wl_c1 = item_list.clone();
         let wl_c2 = item_list.clone();
@@ -37,10 +37,10 @@ fn main() {
         });
 
         let key_seq = QKeySequence::from_q_string(&qs("Ctrl+f"));
-        let find_shortcut = QShortcut::new_2a(key_seq.as_ref(), item_list.borrow_mut().main);
+        let find_shortcut = QShortcut::new_2a(key_seq.as_ref(), item_list.borrow().main());
 
         let key_seq = QKeySequence::from_q_string(&qs("Ctrl+a"));
-        let add_shortcut = QShortcut::new_2a(key_seq.as_ref(), item_list.borrow_mut().main);
+        let add_shortcut = QShortcut::new_2a(key_seq.as_ref(), item_list.borrow().main());
 
         item_list.borrow_mut().set_cb_items(vec![
             "amtools",
