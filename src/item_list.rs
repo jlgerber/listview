@@ -2,7 +2,7 @@ use super::utility::qs;
 use crate::inner_item_list::InnerItemList;
 pub use crate::traits::*;
 use log;
-use qt_core::{q_item_selection_model::SelectionFlag, Key, MatchFlag, QModelIndex, QString, Slot};
+use qt_core::{Key, MatchFlag, QModelIndex, QString, Slot};
 use qt_gui::{q_key_sequence::StandardKey, QKeySequence, QStandardItem, QStandardItemModel};
 use qt_widgets::{cpp_core::MutPtr, cpp_core::Ref as QRef, QListView, QShortcut, QWidget};
 pub use rustqt_utils::{as_mut_ref, as_ref, enclose, enclose_all};
@@ -70,7 +70,7 @@ impl<'l> ItemList<'l> {
                 enclose_all! { (inner) (mut cbox_ptr, mut listview_ptr, mut model_ptr) move || {
                     let text = cbox_ptr.current_text();
                     if inner.is_find_active() {
-                        if Self::_scroll_to_item(text.as_ref(), &mut listview_ptr, &mut model_ptr, true) {
+                        if inner.scroll_to_item(text.as_ref(), true) {
                             cbox_ptr.clear_edit_text();
                         }
                         return;
@@ -91,7 +91,8 @@ impl<'l> ItemList<'l> {
                         return;
                     }
                     if model_ptr.find_items_1a(&text).length() > 0 {
-                        if Self::_scroll_to_item(text.as_ref(), &mut listview_ptr, &mut model_ptr, true) {
+                        if inner.scroll_to_item(text.as_ref(),  true) {
+
                             cbox_ptr.clear_edit_text();
                         }
                         return;
@@ -243,7 +244,8 @@ impl<'l> ItemList<'l> {
     /// # Arguments
     /// * The item to be found, as a &MutPtr<QString>
     pub fn find_item<'a>(&self, item: QRef<QString>) -> Option<MutPtr<QStandardItem>> {
-        return Self::_find_item(item, &self.model());
+        self.inner().find_item(item)
+        //return Self::_find_item(item, &self.model());
     }
 
     /// scroll to the provided item in the list
@@ -256,7 +258,7 @@ impl<'l> ItemList<'l> {
     /// # Returns
     /// * None
     pub fn scroll_to_item<'a>(&self, item: QRef<QString>, select_item: bool) {
-        Self::_scroll_to_item(item, &mut self.view(), &mut self.model(), select_item);
+        self.inner().scroll_to_item(item, select_item);
     }
 
     /// Select the provided item given a Ref wrapped QModelIndex
@@ -268,9 +270,7 @@ impl<'l> ItemList<'l> {
     /// * None
     #[allow(dead_code)]
     pub fn select_item(&self, item: QRef<QModelIndex>) {
-        unsafe {
-            Self::_select_item(item, &self.view());
-        }
+        self.inner().select_item(item);
     }
 
     #[allow(dead_code)]
@@ -389,30 +389,5 @@ impl<'l> ItemList<'l> {
             let first = location.take_first();
             Some(first)
         }
-    }
-
-    fn _scroll_to_item<'a>(
-        item: QRef<QString>,
-        view: &mut MutPtr<QListView>,
-        model: &mut MutPtr<QStandardItemModel>,
-        select: bool,
-    ) -> bool {
-        unsafe {
-            if let Some(item) = Self::_find_item(item, model) {
-                let idx = item.index();
-                view.scroll_to_1a(&idx);
-                if select == true {
-                    Self::_select_item(idx.as_ref(), &view);
-                }
-                return true;
-            }
-            false
-        }
-    }
-
-    unsafe fn _select_item(item: QRef<QModelIndex>, view: &MutPtr<QListView>) {
-        view.selection_model().clear();
-        view.selection_model()
-            .set_current_index(item, SelectionFlag::SelectCurrent.into());
     }
 }
