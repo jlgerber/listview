@@ -2,15 +2,12 @@ use super::utility::qs;
 use crate::inner_item_list::InnerItemList;
 pub use crate::traits::*;
 use log;
-use qt_core::{Key, MatchFlag, QModelIndex, QString, Slot};
+use qt_core::{Key, QModelIndex, QString, Slot};
 use qt_gui::{q_key_sequence::StandardKey, QKeySequence, QStandardItem, QStandardItemModel};
 use qt_widgets::{cpp_core::MutPtr, cpp_core::Ref as QRef, QListView, QShortcut, QWidget};
 pub use rustqt_utils::{as_mut_ref, as_ref, enclose, enclose_all};
 use std::rc::Rc;
 
-//
-// ITEMLIST
-//
 /// The ItemList provides a listview with a toolbar allowing you
 /// to switch between adding and finding members.
 /// It stores the main components that are interesting to
@@ -49,6 +46,7 @@ impl<'l> ItemList<'l> {
             let cut_key_seq = QKeySequence::from_standard_key(StandardKey::Cut);
             let cut_shortcut = QShortcut::new_2a(cut_key_seq.as_ref(), inner.main());
 
+            // Slots
             let inner_view = inner.view();
             let rm_slot = Slot::new(enclose_all! { () (mut inner_view) move || {
                 let selected = inner_view.selection_model().selected_indexes();
@@ -61,13 +59,15 @@ impl<'l> ItemList<'l> {
                 indexes.sort();
                 indexes.iter().rev().for_each(|c| {inner_view.model().remove_row_1a(*c); });
             }});
-
-            let cbox_ptr = inner.add_combobox();
-            let listview_ptr = inner.view();
+            // store off some references so that we can move them into teh closure
+            let mut cbox_ptr = inner.add_combobox();
+            let mut listview_ptr = inner.view();
             let model_ptr = inner.model();
 
             let enter_sc = Slot::new(
-                enclose_all! { (inner) (mut cbox_ptr, mut listview_ptr, mut model_ptr) move || {
+                // changed from enclose_mut to enclose since I have to make copies of the
+                // variables (as i do above) anyway. No reason to create additional copies of the pointers
+                enclose! { (inner) move || {
                     let text = cbox_ptr.current_text();
                     if inner.is_find_active() {
                         if inner.scroll_to_item(text.as_ref(), true) {
@@ -129,7 +129,7 @@ impl<'l> ItemList<'l> {
 
                 enter_sc,
             };
-
+            // Wire up signals and slots
             f.inner()
                 .find_mode_action()
                 .triggered()
@@ -147,7 +147,9 @@ impl<'l> ItemList<'l> {
         }
     }
 
-    // Retrieve an RC wrapped InnerItemList instance
+    // Retrieve an RC wrapped InnerItemList instance. This used to be public
+    // but it really has no place as part of the public api. All use cases
+    // should be covered by explicit methods.
     //
     // # Arguments
     // * None
@@ -245,7 +247,6 @@ impl<'l> ItemList<'l> {
     /// * The item to be found, as a &MutPtr<QString>
     pub fn find_item<'a>(&self, item: QRef<QString>) -> Option<MutPtr<QStandardItem>> {
         self.inner().find_item(item)
-        //return Self::_find_item(item, &self.model());
     }
 
     /// scroll to the provided item in the list
@@ -375,19 +376,5 @@ impl<'l> ItemList<'l> {
     /// * None
     pub fn set_find_mode(&self) {
         self.inner().set_find_mode();
-    }
-
-    fn _find_item<'a>(
-        item: QRef<QString>,
-        model: &MutPtr<QStandardItemModel>,
-    ) -> Option<MutPtr<QStandardItem>> {
-        unsafe {
-            let mut location = model.find_items_2a(item, MatchFlag::MatchCaseSensitive.into());
-            if location.count() == 0 {
-                return None;
-            }
-            let first = location.take_first();
-            Some(first)
-        }
     }
 }
