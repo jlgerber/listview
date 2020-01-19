@@ -8,6 +8,20 @@ use qt_widgets::{cpp_core::MutPtr, cpp_core::Ref as QRef, QListView, QShortcut, 
 pub use rustqt_utils::{as_mut_ref, as_ref, enclose, enclose_all};
 use std::rc::Rc;
 
+#[derive(Debug)]
+pub struct WithsListConfig {
+    find_shortcut: String,
+    add_shortcut: String,
+}
+
+impl Default for WithsListConfig {
+    fn default() -> Self {
+        Self {
+            find_shortcut: "Ctrl+f".to_string(),
+            add_shortcut: "Ctrl+a".to_string(),
+        }
+    }
+}
 /// The WithsList provides a listview with a toolbar allowing you
 /// to switch between adding and finding members.
 /// It stores the main components that are interesting to
@@ -18,10 +32,14 @@ pub struct WithsList<'l> {
     enter_shortcut: MutPtr<QShortcut>,
     delete_shortcut: MutPtr<QShortcut>,
     cut_shortcut: MutPtr<QShortcut>,
+    find_shortcut: MutPtr<QShortcut>,
+    add_shortcut: MutPtr<QShortcut>,
     rm: Slot<'l>,
     find_mode: Slot<'l>,
     add_mode: Slot<'l>,
     enter_sc: Slot<'l>,
+    find_shortcut_slot: Slot<'l>,
+    add_shortcut_slot: Slot<'l>,
 }
 
 impl<'l> WithsList<'l> {
@@ -29,10 +47,11 @@ impl<'l> WithsList<'l> {
     ///
     /// # Arguments
     /// * `parent` - MutPtr to the parent QWidget
+    /// * `config` - Instance of WithsListConfig. (which implements default)
     ///
     /// # Returns
     /// * An WithsList instance
-    pub fn new(parent: MutPtr<QWidget>) -> WithsList<'l> {
+    pub fn new(parent: MutPtr<QWidget>, config: WithsListConfig) -> WithsList<'l> {
         unsafe {
             let inner = Rc::new(InnerWithsList::new(parent));
 
@@ -45,6 +64,12 @@ impl<'l> WithsList<'l> {
 
             let cut_key_seq = QKeySequence::from_standard_key(StandardKey::Cut);
             let cut_shortcut = QShortcut::new_2a(cut_key_seq.as_ref(), inner.main());
+
+            let key_seq = QKeySequence::from_q_string(&qs(&config.find_shortcut));
+            let find_shortcut = QShortcut::new_2a(key_seq.as_ref(), inner.main());
+
+            let key_seq = QKeySequence::from_q_string(&qs(&config.add_shortcut));
+            let add_shortcut = QShortcut::new_2a(key_seq.as_ref(), inner.main());
 
             // Slots
             let inner_view = inner.view();
@@ -104,12 +129,20 @@ impl<'l> WithsList<'l> {
 
                 }},
             );
+            let find_shortcut_slot = Slot::new(enclose! { (inner) move || {
+                inner.set_find_mode();
+            }});
+            let add_shortcut_slot = Slot::new(enclose! { (inner) move || {
+                inner.set_add_mode();
+            }});
             let cblabel = inner.add_label();
             let f = Self {
                 inner,
                 enter_shortcut: enter_shortcut.into_ptr(),
                 delete_shortcut: delete_shortcut.into_ptr(),
                 cut_shortcut: cut_shortcut.into_ptr(),
+                find_shortcut: find_shortcut.into_ptr(),
+                add_shortcut: add_shortcut.into_ptr(),
                 rm: rm_slot,
 
                 find_mode: Slot::new(
@@ -123,11 +156,12 @@ impl<'l> WithsList<'l> {
                     as_mut_ref! {(cblabel) enclose_all! { () ( mut cbox_ptr) move || {
                         cbox_ptr.set_enabled(true);
                         if let Some(mut cblabel) = cblabel {cblabel.set_text(&qs("Add Item"))};
-
                     }}},
                 ),
 
                 enter_sc,
+                find_shortcut_slot,
+                add_shortcut_slot,
             };
             // Wire up signals and slots
             f.inner()
@@ -136,13 +170,11 @@ impl<'l> WithsList<'l> {
                 .connect(&f.find_mode);
 
             f.inner().add_mode_action().triggered().connect(&f.add_mode);
-
             f.enter_shortcut.activated().connect(&f.enter_sc);
-
             f.delete_shortcut.activated().connect(&f.rm);
-
             f.cut_shortcut.activated().connect(&f.rm);
-
+            f.find_shortcut.activated().connect(&f.find_shortcut_slot);
+            f.add_shortcut.activated().connect(&f.add_shortcut_slot);
             f
         }
     }
