@@ -163,13 +163,30 @@ impl<'l> ItemList<'l> {
         }
     }
 
+    /// Retrieve an RC wrapped InnerItemList instance
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * Rc of the InnerItemList instance
     pub fn inner(&self) -> Rc<InnerItemList> {
         self.inner.clone()
     }
 
+    /// Retrieve a mutable pointer to the component's top QWidget. That is
+    /// the widget contained within that is the parent of the other internal
+    /// widgets.
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * Mutable Pointer to the main QWidget
     pub fn main(&self) -> MutPtr<QWidget> {
         self.inner().main()
     }
+
     #[allow(dead_code)]
     /// Clear the listview and its backng model
     ///
@@ -202,10 +219,24 @@ impl<'l> ItemList<'l> {
         }
     }
 
+    /// Retrieve the model for the component
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * MutPtr wrapping QStandardItemModel
     pub fn model(&self) -> MutPtr<QStandardItemModel> {
         self.inner().model()
     }
 
+    /// Retrieve the primary list view.
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * MutPtr to QListView
     pub fn view(&self) -> MutPtr<QListView> {
         self.inner().view()
     }
@@ -214,6 +245,9 @@ impl<'l> ItemList<'l> {
     ///
     /// # Arguments
     /// * The item to be added, as a &str or String
+    ///
+    /// # Returns
+    /// * None
     pub fn add_item<I>(&self, item: I)
     where
         I: AsRef<str>,
@@ -235,7 +269,10 @@ impl<'l> ItemList<'l> {
     /// * `item` - A Ref wrapped QString.
     /// * `select1 - a boolean indicating whether the item should be selected as well as centered
     /// in the view
-    pub fn scroll_to_item<'a>(&mut self, item: QRef<QString>, select_item: bool) {
+    ///
+    /// # Returns
+    /// * None
+    pub fn scroll_to_item<'a>(&self, item: QRef<QString>, select_item: bool) {
         Self::_scroll_to_item(item, &mut self.view(), &mut self.model(), select_item);
     }
 
@@ -281,9 +318,6 @@ impl<'l> ItemList<'l> {
     ///
     /// # Returns
     /// * Vector of String
-    // this should return an iterator at some point. Maybe a good time to try out
-    // the crate which provides yield on stable
-    // have to figure out how to get the list of items from the
     pub fn items(&self) -> Vec<String> {
         self.inner().items()
     }
@@ -337,6 +371,29 @@ impl<'l> ItemList<'l> {
         self.inner().set_stylesheet(sheet);
     }
 
+    /// Set the component to add mode
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * None
+    pub fn set_add_mode(&self) {
+        self.inner().set_add_mode();
+    }
+
+    #[allow(dead_code)]
+    /// Set the component to find mode
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * None
+    pub fn set_find_mode(&self) {
+        self.inner().set_find_mode();
+    }
+
     fn _find_item<'a>(
         item: QRef<QString>,
         model: &MutPtr<QStandardItemModel>,
@@ -374,14 +431,5 @@ impl<'l> ItemList<'l> {
         view.selection_model().clear();
         view.selection_model()
             .set_current_index(item, SelectionFlag::SelectCurrent.into());
-    }
-
-    pub fn set_add_mode(&self) {
-        self.inner().set_add_mode();
-    }
-
-    #[allow(dead_code)]
-    pub fn set_find_mode(&self) {
-        self.inner().set_find_mode();
     }
 }
