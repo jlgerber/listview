@@ -4,7 +4,9 @@ pub use crate::traits::*;
 use log;
 use qt_core::{Key, QModelIndex, QString, Slot};
 use qt_gui::{q_key_sequence::StandardKey, QKeySequence, QStandardItem, QStandardItemModel};
-use qt_widgets::{cpp_core::MutPtr, cpp_core::Ref as QRef, QListView, QShortcut, QWidget};
+use qt_widgets::{
+    cpp_core::MutPtr, cpp_core::Ref as QRef, QListView, QPushButton, QShortcut, QWidget,
+};
 pub use rustqt_utils::{as_mut_ref, as_ref, enclose, enclose_all};
 use std::rc::Rc;
 
@@ -257,6 +259,16 @@ impl<'l> WithsList<'l> {
         self.inner().view()
     }
 
+    /// Retrieve a MutPtr to the save button
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * MutPtr to QPushButton
+    pub fn save_button(&self) -> MutPtr<QPushButton> {
+        self.inner().save_button()
+    }
     /// add an item to the pulldown
     ///
     /// # Arguments
