@@ -92,31 +92,80 @@ impl InnerWithsList {
         }
     }
 
+    /// Return a MutPtr to the main qwidget
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * MutPtr<QWidget>
     pub(crate) fn main(&self) -> MutPtr<QWidget> {
         self.main
     }
 
+    /// Return a MutPtr to the with packages QListView
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * MutPtr<QListView>
     pub(crate) fn view(&self) -> MutPtr<QListView> {
         self.view
     }
 
+    /// Return a MutPtr to the main QToolBar
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * MutPtr<QToolBar>
     #[allow(dead_code)]
     pub(crate) fn toolbar(&self) -> MutPtr<QToolBar> {
         self.mode_toolbar.toolbar()
     }
 
+    /// Returns a MutPtr to the combobox used to add and find with packages
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * MutPtr<QComboBox>
     pub(crate) fn add_combobox(&self) -> MutPtr<QComboBox> {
         self.add_combobox
     }
 
+    /// Returns a MutPtr to the backging QStandardItemModel
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * MutPtr<QStandardItemModel>
     pub(crate) fn model(&self) -> MutPtr<QStandardItemModel> {
         unsafe { self.view.model().dynamic_cast_mut() }
     }
 
+    /// Returns a MutPtr to the add/find combobox's label
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * MutPtr<QLabel>
     pub(crate) fn add_label(&self) -> MutPtr<QLabel> {
         self.add_label
     }
 
+    /// Returns a MutPtr to the save button
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * MutPtr<QPushButton>
     #[allow(dead_code)]
     pub(crate) fn save_button(&self) -> MutPtr<QPushButton> {
         self.save_button
@@ -133,6 +182,7 @@ impl InnerWithsList {
     pub(crate) fn is_find_active(&self) -> bool {
         self.mode_toolbar.is_find_active()
     }
+
     /// Determine whether the add mode is active
     ///
     /// # Arguments
@@ -198,6 +248,12 @@ impl InnerWithsList {
     }
 
     /// Retrieve a vector of Strings for items
+    ///
+    /// # Arguments
+    /// * None
+    ///
+    /// # Returns
+    /// * Vec<String>
     pub(crate) fn items(&self) -> Vec<String> {
         unsafe {
             let sz = self.model.row_count_0a();
@@ -213,6 +269,7 @@ impl InnerWithsList {
             rval
         }
     }
+
     /// add an item to the pulldown
     ///
     /// # Arguments
@@ -337,6 +394,28 @@ impl InnerWithsList {
         load_stylesheet(sheet, self.main);
     }
 
+    pub(crate) fn find_mode_action(&self) -> MutPtr<QAction> {
+        self.mode_toolbar.find_mode_action
+    }
+
+    pub(crate) fn add_mode_action(&self) -> MutPtr<QAction> {
+        self.mode_toolbar.add_mode_action
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn set_add_mode(&self) {
+        unsafe {
+            self.add_mode_action().activate(ActionEvent::Trigger);
+        }
+    }
+
+    #[allow(dead_code)]
+    pub(crate) fn set_find_mode(&self) {
+        unsafe {
+            self.find_mode_action().activate(ActionEvent::Trigger);
+        }
+    }
+
     fn _find_item<'a>(
         item: QRef<QString>,
         model: &MutPtr<QStandardItemModel>,
@@ -376,27 +455,6 @@ impl InnerWithsList {
             .set_current_index(item, SelectionFlag::SelectCurrent.into());
     }
 
-    pub(crate) fn find_mode_action(&self) -> MutPtr<QAction> {
-        self.mode_toolbar.find_mode_action
-    }
-
-    pub(crate) fn add_mode_action(&self) -> MutPtr<QAction> {
-        self.mode_toolbar.add_mode_action
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn set_add_mode(&self) {
-        unsafe {
-            self.add_mode_action().activate(ActionEvent::Trigger);
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn set_find_mode(&self) {
-        unsafe {
-            self.find_mode_action().activate(ActionEvent::Trigger);
-        }
-    }
     // setup the main widget, performing configuration, adding a
     // layout, and registering ti with its parent, inserting it into
     // its parent's layout

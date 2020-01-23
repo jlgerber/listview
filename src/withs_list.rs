@@ -5,14 +5,18 @@ use log;
 use qt_core::{Key, QModelIndex, QString, Slot};
 use qt_gui::{q_key_sequence::StandardKey, QKeySequence, QStandardItem, QStandardItemModel};
 use qt_widgets::{
-    cpp_core::MutPtr, cpp_core::Ref as QRef, QListView, QPushButton, QShortcut, QWidget,
+    cpp_core::CastInto, cpp_core::MutPtr, cpp_core::Ref as QRef, QListView, QPushButton, QShortcut,
+    QWidget,
 };
 pub use rustqt_utils::{as_mut_ref, as_ref, enclose, enclose_all};
 use std::rc::Rc;
 
+/// Struct which holds configuration for the WithsList
 #[derive(Debug)]
 pub struct WithsListConfig {
+    /// The find shortcut as a string (eg Ctrl+f)
     find_shortcut: String,
+    /// The add shortcut as a string
     add_shortcut: String,
 }
 
@@ -53,9 +57,9 @@ impl<'l> WithsList<'l> {
     ///
     /// # Returns
     /// * An WithsList instance
-    pub fn new(parent: MutPtr<QWidget>, config: WithsListConfig) -> WithsList<'l> {
+    pub fn new(parent: impl CastInto<MutPtr<QWidget>>, config: WithsListConfig) -> WithsList<'l> {
         unsafe {
-            let inner = Rc::new(InnerWithsList::new(parent));
+            let inner = Rc::new(InnerWithsList::new(parent.cast_into()));
 
             // shortcuts
             let enter_key_seq = QKeySequence::from_int(Key::KeyReturn.to_int());
